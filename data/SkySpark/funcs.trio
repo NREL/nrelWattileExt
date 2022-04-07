@@ -1,0 +1,21 @@
+name:exampleQuery
+func
+src:
+  // Example Query
+  // This is a two-line example of a simple query to get weather points associated with a site (e.g. to use as predictors)
+  
+  () => do
+    // Read a site record
+    mySite: read(site and dis=="Synthetic Site")
+    
+    // Get associated 
+    readAll(point and weather and weatherStationRef == mySite.toRec->weatherStationRef)
+  end
+---
+name:exampleHistoryRead
+func
+src:
+  // Example History Read
+  // This is a one-line example of executing a point query followed by a history read
+  
+  () => readAll(point and weather).hisRead(2021-12-01)

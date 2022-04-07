@@ -1,0 +1,55 @@
+name:testEnvironmentSetup
+doc:
+  Setup script to import test environment database records, functions, and point history into the current SkySpark project. Expects to find the following files in 'io':
+  
+  - 'folio_records.trio'
+  - 'folio_his.zinc'
+  
+  These files are available in the [intelligentcampus-model-deploy]`https://github.com/NREL/intelligentcampus-model-deploy` repo.
+  
+  The single **opts** argument accepts the following control options:
+  
+  - 'resetProject': Marker; trash all existing 'weatherStation', 'site', 'equip', and 'point' records from the current project prior to setup, then empty the trash
+  
+  **Warning:** there is no recovery of any existing records after using the 'resetProject' option. Use with care!
+func
+src:
+  (opts:{}) => do
+    // Default options
+    opts = {}.merge(opts)
+    
+    // Clear existing records (if applicable)
+    if (opts.has("resetProject")) do
+      // Trash recs
+      readAll(weatherStation or site or equip or point).recTrash
+      
+      // Empty trash
+      folioEmptyTrash()
+    end
+    
+    // Import Folio records
+    recs: ioReadTrio(`io/folio_records.trio`)
+      .toRecList
+      .map(rec => diff(null, rec, {add}))
+      .commit
+    
+    // Read point history
+    data: ioReadZinc(`io/folio_his.zinc`)
+    
+    // Data columns (minus timestamp)
+    columns: data.colNames.remove(0) // 'ts' is column 0
+    
+    // Write point history by point
+    columns.each() cn => do
+      // Point to write
+      point: readById(data.col(cn).meta->id)
+      
+      // Data to write
+      pointData: data
+        .keepCols(["ts", cn])
+        .hisFindAll((v, t) => v != null)
+      
+      // Write history
+      hisWrite(pointData, point)
+    end
+  end
