@@ -10,7 +10,7 @@ Directory Structure
 
 - `folio_records.trio`: SkySpark database records for predictors and targets;
   for SkySpark import
-- `folio_his.zinc`: Point history in Haystack [Zinc] format; for SkySpark import
+- `folio_his.zinc`: Point history in Haystack [Zinc] format; for reference
 - `funcs.trio`: Example SkySpark [Axon] functions for data interaction; for
   SkySpark import
 - `README.md`: This README document
@@ -35,7 +35,8 @@ Instructions
 
 1. SkySpark installation (version 3.1.3+) with superuser permissions (must be
    able to install packages and create new projects)
-2. Docker installation
+2. Docker installation (note needed for setup; needed for running the prediction
+   code)
 
 ### Setup Instructions ###
 
@@ -44,9 +45,9 @@ Instructions
 2. From the host interface, create a new empty project with the following
    metadata:
    
-   a. **name:** "pred_test" (required)
-   b. **dis:** "Predictive Analytics Test" (optional)
-   c. **doc:** "SkySpark test environment for integrating predictive analytics time series models using Python and Docker" (optional)
+   1. **name:** "pred_test" (required)
+   2. **dis:** "Predictive Analytics Test" (optional)
+   3. **doc:** "SkySpark test environment for integrating predictive analytics time series models using Python and Docker" (optional)
 
    Note: if the default project name "pred_test" is altered, remember to use the
    new name where applicable in each of the following steps.
@@ -58,9 +59,9 @@ Instructions
 5. Within the *Tools* app, *Files* tab, upload the following files from this
    directory to `proj > pred_test > io`:
    
-   a. `setup.trio`
-   b. `folio_records.trio`
-   c. `folio_his.zinc`
+   1. `setup.trio`
+   2. `folio_records.trio`
+   3. `folio_his.zinc`
    
    Alternatively, transfer these files manually to your SkySpark project's `io`
    directory using your operating system.
@@ -116,3 +117,12 @@ Notes
    version.)
 
 4. If re-importing the test environment to an existing project
+
+5. If you also want to import the reference functions for data interaction,
+   first upload `funcs.trio` to the SkySpark `io` directory and then run:
+   
+   ```
+   ioReadTrio(`io/funcs.trio`).map(rec => diff(null, rec, {add})).commit
+   ```
+   
+   Including these functions here is temporary; they will eventually move.
