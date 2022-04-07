@@ -116,9 +116,7 @@ Notes
    make a new copy with an integer suffix rather than overwriting the existing
    version.)
 
-4. If re-importing the test environment to an existing project
-
-5. If you also want to import the reference functions for data interaction,
+4. If you also want to import the reference functions for data interaction,
    first upload `funcs.trio` to the SkySpark `io` directory and then run:
    
    ```
