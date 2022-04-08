@@ -8,8 +8,32 @@ src:
     // Read a site record
     mySite: read(site and dis=="Synthetic Site")
     
-    // Get associated 
+    // Get associated weather points
     readAll(point and weather and weatherStationRef == mySite.toRec->weatherStationRef)
+  end
+---
+name:examplePythonDataMarshalling
+func
+src:
+  // Example Python Data Marshalling
+  // A few lines of code that illustrate passing data into Python, processing it, and returning
+  // Note: first you must have the Python docker image pulled; see SkySpark docs
+  
+  () => do
+    // Read a site record
+    myPoint: read(point and power and sensor) // should only be one of these
+    
+    // Read data
+    inputData: myPoint.hisRead(2021-12-01)
+    
+    // Pass to python, process, and return
+    py()
+      .pyDefine("my_grid", inputData)
+      .pyExec("my_data_frame = my_grid.to_dataframe()") // Pandas data frame
+      .pyEval("my_data_frame['v0'].mean()") // Return column mean as number
+    
+    // Developed using: https://skyfoundry.com/doc/lib-py/doc
+    // Note: more complex data marshalling, such as returning grids, was quirky when tried
   end
 ---
 name:exampleHistoryRead
