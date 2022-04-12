@@ -160,7 +160,7 @@ weather
 weatherStationRef:@278f790b-44057bc3 "Synthetic Weather Station"
 wind
 ---
-id:@p:pred_test:r:29e7afcb-0fcefdd7 "Persistent Python Container Task"
+id:@29e7afcb-0fcefdd7 "Persistent Python Container Task"
 dis:Persistent Python Container Task
 task
 taskExpr:examplePythonTask
