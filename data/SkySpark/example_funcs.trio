@@ -1,3 +1,91 @@
+name:exampleHistoryRead
+func
+src:
+  // Example History Read
+  // This is a one-line example of executing a point query followed by a history read
+  
+  () => readAll(point and weather).hisRead(2021-12-01)
+---
+name:examplePythonInteraction
+func
+src:
+  // Example Python Interaction
+  // Python interaction using a persistent session within a SkySpark task
+  // Contains four calls to the same task; returns results in a 4-element list
+  
+  // 'pythonTask' argument is the task record or record ID, e.g. from one of...
+  //   task(@p:pred_test:r:29e7afcb-0fcefdd7)
+  //   read(task and dis=="Persistent Python Container Task")
+  
+  (pythonTask) => do
+    // Example 1: Run a generic Python command
+    res1: taskSend(pythonTask, "hex(11)") // "0xb"
+      .futureGet
+      
+    // futureGet() is required here; we must wait for the task result to come back
+    // (See task framework docs)
+    
+    // Example 2: Retrieve a value from a Python variable defined in the container
+    res2: taskSend(pythonTask, "myPythonVar")
+      .futureGet
+  
+    // Example 3: Run a custom function defined in the container
+    res3: taskSend(pythonTask, "myPythonFunc(1)")
+      .futureGet
+  
+    // Example 4: Pass some data via `io/`
+    
+    // Read some data and write it to CSV
+    read(point and power and sensor) // should only be one of these
+      .hisRead(2021-12-01)
+      .setColMeta("ts", {dis:"ts"}) // Forces column header to "ts"
+      .setColMeta("v0", {dis:"v0"}) // Forces column header to "v0"
+      .ioWriteCsv(`io/my_data.csv`)
+     
+    // Note: without the setColMeta() calls above, the CSV data headers will not
+    // be valid SkySpark tag names. They read into Python fine, but then the function
+    // will encounter an error on conversion back to SkySpark.
+    
+    // Read it into Python via Pandas and then return it
+    res4: taskSend(pythonTask, "hxpy.haystack.grid.Grid.from_dataframe(pandas.read_csv('/io/my_data.csv'))")
+      .futureGet
+    
+    // Combine results in a list and return for examination
+    [res1, res2, res3, res4]
+  end
+---
+name:examplePythonTask
+func
+src:
+  // Example Python Task
+  // Uses the SkySpark task framework to keep a persistent Python session available
+  
+  // Notes...
+  //   1. First you must have the Python docker image pulled; see SkySpark docs
+  //   2. 'msg' argument is a string containing Python code to pass to pyEval()
+  //   3. This is a very simple structure for task demonstration only
+  
+  // Example task
+  (msg) => do
+    // Note: no type checking on 'msg' in this simple demo!
+  
+    // Session initialization callback; gets called once only
+    // (See Python extension docs)
+    taskPyInit: (session) => session
+      .pyExec("import pandas")
+      .pyExec("import hxpy")
+      .pyDefine("myPythonVar", "foo")
+      .pyExec("def myPythonFunc(x): return x + 1")
+    
+    // This py() session will be persisted between task invocations
+    result: py()
+      .pyInit(taskPyInit) // Init callback goes here; see docs
+      .pyEval(msg) // Here is where you might do some more complicated stuff!
+    
+    // Return result of pyEval()
+    return result
+  end
+---
 name:exampleQuery
 func
 src:
@@ -11,35 +99,3 @@ src:
     // Get associated weather points
     readAll(point and weather and weatherStationRef == mySite.toRec->weatherStationRef)
   end
----
-name:examplePythonDataMarshalling
-func
-src:
-  // Example Python Data Marshalling
-  // A few lines of code that illustrate passing data into Python, processing it, and returning
-  // Note: first you must have the Python docker image pulled; see SkySpark docs
-  
-  () => do
-    // Read a site record
-    myPoint: read(point and power and sensor) // should only be one of these
-    
-    // Read data
-    inputData: myPoint.hisRead(2021-12-01)
-    
-    // Pass to python, process, and return
-    py()
-      .pyDefine("my_grid", inputData)
-      .pyExec("my_data_frame = my_grid.to_dataframe()") // Pandas data frame
-      .pyEval("my_data_frame['v0'].mean()") // Return column mean as number
-    
-    // Developed using: https://skyfoundry.com/doc/lib-py/doc
-    // Note: more complex data marshalling, such as returning grids, was quirky when tried
-  end
----
-name:exampleHistoryRead
-func
-src:
-  // Example History Read
-  // This is a one-line example of executing a point query followed by a history read
-  
-  () => readAll(point and weather).hisRead(2021-12-01)
