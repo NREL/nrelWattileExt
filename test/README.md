@@ -16,7 +16,7 @@ Directory Structure
 - `README.md`: This README document
 - `reference_funcs.trio`: SkySpark [Axon] functions included for reference only;
   not used in the test environment
-- `setup.trio`: kySpark [Axon] function for automated setup of the SkySpark test
+- `setup.trio`: SkySpark [Axon] function for automated setup of the SkySpark test
   environment (see *Instructions* below)
 
 All `*.trio` files are encoded in Haystack [Trio] format.
