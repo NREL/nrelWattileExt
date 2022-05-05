@@ -83,3 +83,184 @@ src:
     // Return result of pyEval()
     return result
   end
+---
+name:testPrepDataV4
+func
+src:
+  // Placeholder test harnass to run a prediction for a V4 model
+  // Adapted from previous prepDataForv4() function, but leverages task framework
+  
+  // 'predAnalyticsTask' argument is the task record or record ID, e.g. from one of...
+  //   task(@p:pred_test:r:2a06ba36-9cf5ad53)
+  //   read(task and dis=="Predictive Analytics Python Task")
+  
+  (predAnalyticsTask) => do
+    /* Define inputs */
+    
+    // (Eventually these will be user inputs passed as arguments, of some variety, to the prediction task)
+    
+    // CONFIG: Specified manually for testing
+    config: {
+      "use_case": "prediction", // TO DO: This should eventually be a separate function, not a configuration option?
+      "target_var": "Synthetic Site Electricity Main Total Power", // NOTE: modified from "x"; not used currently
+      "DOW": ["binary_reg"],
+      "MOY": ["sincos"],
+      "HOD": ["sincos"],
+      "rolling_window": {
+        "active": true,
+        "type": "binned",
+        "minutes": 15
+      },
+      "data_time_interval_mins": 1,
+      "arch_version": 4,
+      "window": 24,
+      "sequence_freq_min": 15,
+      "arch_type": "RNN",
+      "EC_future_gap_min": 0,
+      "data_split": "80:10:10",
+      "exp_dir": "/io/exp_dir",
+      "train_val_split": "Random",
+      /*
+      "data_dir": "/io/data_dir", // Needed to run "use_case" : "train"
+      "splicer": {
+        "active": false,          // Needed to run "use_case" : "train"
+      },
+      "random_seed": 42,          // Needed to run "use_case" : "train"
+      "train_size_factor": 1,     // Needed to run "use_case" : "train"; this value is probably garbage
+      */
+    }
+    
+    // WINDOW: Extracted from configuration for now; the logic here needs to be verified
+    window: config->sequence_freq_min.as(1min) *  config->window // In minutes
+    
+    // INPUTS:
+    // Each ID has a 'dis' tag manually defined to match the original trained model from the
+    // intelligentcampus-pred-analytics repo. We should get the two synthetic data set names 
+    // and ids aligned so we don't have to use this hack. (Eventually this should load from
+    // a data set configuration file or similar.) Note that 'dis' tag affects CSV export, but
+    // does not affect data marshalling of grids SkySpark -> Python. (Column names "v0", "v1",
+    // etc. are used instead, regardless of 'dis' tag.)
+    inputs: [
+      {id:@p:pred_test:r:278f8943-6a199bd7, dis:"SRRL BMS Dew Point Temperature"},
+      {id:@p:pred_test:r:278f79c0-03da5abc, dis:"SRRL BMS Diffuse Horizontal Irradiance"},
+      {id:@p:pred_test:r:278f79c0-4fe536b4, dis:"SRRL BMS Direct Normal Irradiance"},
+      {id:@p:pred_test:r:278f79c0-8a8f26b0, dis:"SRRL BMS Dry Bulb Temperature"},
+      {id:@p:pred_test:r:278f79c0-8d722bdb, dis:"SRRL BMS Global Horizontal Irradiance"},
+      {id:@p:pred_test:r:278f79c0-e7db4305, dis:"SRRL BMS Relative Humidity"},
+      {id:@p:pred_test:r:278f79c0-c1f48e5c, dis:"SRRL BMS Wind Speed at 19'"}
+    ]
+    
+    // TIMESTAMP: What is the timestamp around which we want to call the prediction
+    ts: dateTime(2021-12-08, time(08,00), "Denver") // December 8, 2021 08:00 MST
+    
+    /* Run prep_for_rnn in Python */
+    
+    // Uses the task framework to send actions and retrieve results
+      
+    // Model setup: see predAnalyticsPythonTask() and predAnalyticsModelSetup()
+    predAnalyticsTask.taskSend({
+      action:   "setup",
+      config:   config
+    })
+    
+    // Read and prepare data: see predAnalyticsPythonTask(), predAnalyticsReadHis(), and predAnalyticsPythonPredict()
+    future: predAnalyticsTask.taskSend({
+      action:   "predict",
+      inputs:   inputs,
+      ts:       ts,
+      window:   window
+    })
+    
+    // Get result
+    future.futureGet()
+    
+  end
+---
+name:testPrepDataV5
+func
+src:
+  // Placeholder test harnass to run a prediction for a V5 model
+  // Adapted from previous prepDataForv5() function, but leverages task framework
+  
+  // 'predAnalyticsTask' argument is the task record or record ID, e.g. from one of...
+  //   task(@p:pred_test:r:2a06ba36-9cf5ad53)
+  //   read(task and dis=="Predictive Analytics Python Task")
+  
+  (predAnalyticsTask) => do
+    /* Define inputs */
+    
+    // (Eventually these will be user inputs passed as arguments, of some variety, to the prediction task)
+    
+    // CONFIG: Specified manually for testing
+    config: {
+      "use_case": "prediction", // TO DO: This should eventually be a separate function, not a configuration option?
+      "target_var": "Synthetic Site Electricity Main Total Power", // NOTE: modified from "x"; not used currently
+      "DOW": ["binary_reg"],
+      "MOY": ["sincos"],
+      "HOD": ["sincos"],
+      "rolling_window": {
+        "active": true,
+        "type": "binned",
+        "minutes": 15
+      },
+      "data_time_interval_mins": 1,
+      "arch_version": 5,
+      "window": 24,
+      "sequence_freq_min": 15,
+      "arch_type": "RNN",
+      "EC_future_gap_min": 0,
+      "data_split": "80:10:10",
+      "exp_dir": "/io/exp_dir",
+      "train_val_split": "Random",
+      "S2S_stagger": {
+        "initial_num": 72,
+        "decay": 0,
+        "secondary_num": 0
+     }
+    }
+    
+    // WINDOW: Extracted from configuration for now; the logic here needs to be verified
+    window: config->sequence_freq_min.as(1min) *  config->window // In minutes
+    
+    // INPUTS:
+    // Each ID has a 'dis' tag manually defined to match the original trained model from the
+    // intelligentcampus-pred-analytics repo. We should get the two synthetic data set names 
+    // and ids aligned so we don't have to use this hack. (Eventually this should load from
+    // a data set configuration file or similar.) Note that 'dis' tag affects CSV export, but
+    // does not affect data marshalling of grids SkySpark -> Python. (Column names "v0", "v1",
+    // etc. are used instead, regardless of 'dis' tag.)
+    inputs: [
+      {id:@p:pred_test:r:278f8943-6a199bd7, dis:"SRRL BMS Dew Point Temperature"},
+      {id:@p:pred_test:r:278f79c0-03da5abc, dis:"SRRL BMS Diffuse Horizontal Irradiance"},
+      {id:@p:pred_test:r:278f79c0-4fe536b4, dis:"SRRL BMS Direct Normal Irradiance"},
+      {id:@p:pred_test:r:278f79c0-8a8f26b0, dis:"SRRL BMS Dry Bulb Temperature"},
+      {id:@p:pred_test:r:278f79c0-8d722bdb, dis:"SRRL BMS Global Horizontal Irradiance"},
+      {id:@p:pred_test:r:278f79c0-e7db4305, dis:"SRRL BMS Relative Humidity"},
+      {id:@p:pred_test:r:278f79c0-c1f48e5c, dis:"SRRL BMS Wind Speed at 19'"}
+    ]
+    
+    // TIMESTAMP: What is the timestamp around which we want to call the prediction
+    ts: dateTime(2021-12-08, time(08,00), "Denver") // December 8, 2021 08:00 MST
+    
+    /* Run prep_for_rnn in Python */
+    
+    // Uses the task framework to send actions and retrieve results
+      
+    // Model setup: see predAnalyticsPythonTask() and predAnalyticsModelSetup()
+    predAnalyticsTask.taskSend({
+      action:   "setup",
+      config:   config
+    })
+    
+    // Read and prepare data: see predAnalyticsPythonTask(), predAnalyticsReadHis(), and predAnalyticsPythonPredict()
+    future: predAnalyticsTask.taskSend({
+      action:   "predict",
+      inputs:   inputs,
+      ts:       ts,
+      window:   window
+    })
+    
+    // Get result
+    future.futureGet()
+    
+  end
