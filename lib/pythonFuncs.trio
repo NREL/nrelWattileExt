@@ -38,14 +38,13 @@ src:
     session
       .pyDefine("my_grid", data)
       .pyExec("my_data_frame = my_grid.to_dataframe()") // Pandas data frame
-      .pyExec("my_data_frame.set_index('ts')")
-      .pyExec("my_data_frame.index = pd.to_datetime(my_data_frame.index)")
-      .pyExec("my_data_frame = my_data_frame.drop(columns=['ts'])")
-      .pyExec("my_data_frame[configs['target_var']] = -999") // What does this do?
-  
+      .pyExec("my_data_frame = my_data_frame.set_index('ts')")
+      .pyExec("my_data_frame.index = pd.to_datetime(my_data_frame.index, format='%Y-%m-%dT%H:%M:%S%z')")
+      .pyExec("my_data_frame[configs['target_var']] = -999") // Temporary; prevents dropping rows
+
     // Execute data preparation (TEMPORARY)
     // NOTE: This line eventually to be replaced with prediction call
     session.pyEval("prep_for_rnn(configs, my_data_frame)") // prep data
-      
+
     // NOTE: pyEval() closses the Python session unless the session is running in a task
   end
