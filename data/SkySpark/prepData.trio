@@ -1,7 +1,7 @@
 name:prepDataForv5
 func
 src:
-  // prep data for v4
+  // prep data for v5
   () => do
     // Read a site record
     myPoint: read(point and power and sensor) // should only be one of these
@@ -47,9 +47,8 @@ src:
       // shape data
       .pyDefine("my_grid", inputData)
       .pyExec("my_data_frame = my_grid.to_dataframe()") // Pandas data frame
-      .pyExec("my_data_frame.set_index('ts')")
-      .pyExec("my_data_frame.index = pd.to_datetime(my_data_frame.index)")
-      .pyExec("my_data_frame = my_data_frame.drop(columns=['ts'])")
+      .pyExec("my_data_frame = my_data_frame.set_index('ts')")
+      .pyExec("my_data_frame.index = pd.to_datetime(my_data_frame.index, format='%Y-%m-%dT%H:%M:%S%z Denver')")
       .pyExec("my_data_frame[configs['target_var']] = -999")
   
   
@@ -106,9 +105,8 @@ src:
       // shape data
       .pyDefine("my_grid", inputData)
       .pyExec("my_data_frame = my_grid.to_dataframe()") // Pandas data frame
-      .pyExec("my_data_frame.set_index('ts')")
-      .pyExec("my_data_frame.index = pd.to_datetime(my_data_frame.index)")
-      .pyExec("my_data_frame = my_data_frame.drop(columns=['ts'])")
+      .pyExec("my_data_frame = my_data_frame.set_index('ts')")
+      .pyExec("my_data_frame.index = pd.to_datetime(my_data_frame.index, format='%Y-%m-%dT%H:%M:%S%z Denver')")
       .pyExec("my_data_frame[configs['target_var']] = -999")
   
   
