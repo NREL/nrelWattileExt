@@ -17,6 +17,9 @@ src:
   //   task(@p:pred_test:r:29e7afcb-0fcefdd7)
   //   read(task and dis=="Persistent Python Container Task")
   
+  // This example to be removed in the future; retained for now because it is
+  // still a nice basic illustration of interacting with Python in a task
+  
   (pythonTask) => do
     // Example 1: Run a generic Python command
     res1: taskSend(pythonTask, "hex(11)") // "0xb"
@@ -64,6 +67,9 @@ src:
   //   1. First you must have the Python docker image pulled; see SkySpark docs
   //   2. 'msg' argument is a string containing Python code to pass to pyEval()
   //   3. This is a very simple structure for task demonstration only
+  
+  // This example to be removed in the future; retained for now because it is
+  // still a nice basic illustration of interacting with Python in a task
   
   // Example task
   (msg) => do
