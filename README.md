@@ -205,6 +205,12 @@ Alternative Workflow:
    relevant file(s) in the `lib/` directory, replacing the existing versions
    as applicable.
 
+### Test Environment ###
+
+The `test/` subdirectory contains resources and instructions for setting up a
+SkySpark test environment for developing and testing functions and workflows
+related to **nrelPredictiveAnalyticsExt**.
+
 License
 -------
 
