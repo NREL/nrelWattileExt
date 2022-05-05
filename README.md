@@ -53,6 +53,25 @@ start (or restart) SkySpark.
 
 **TO DO** (Future)
 
+Prerequisites
+-------------
+
+To use **nrelPredictiveAnalyticsExt**, you must have:
+
+1. Docker installed and working with SkySpark
+2. A local Docker image built from the NREL [intelligentcampus-pred-analytics]
+   repo registered with a tag you can access from SkySpark (e.g. "intelcamp")
+
+**TO DO:** Put more instructions here.
+
+[intelligentcampus-pred-analytics]: https://github.com/NREL/intelligentcampus-pred-analytics/
+
+Documentation
+-------------
+
+Function documentation is available in the SkySpark *Doc* app under
+*nrelPredictiveAnalytics* or within the *Docs* interface in the *Code* app.
+
 Develop
 -------
 
@@ -62,6 +81,7 @@ functions are stored in the [Trio]-formatted files within `lib/`:
 
 - `taskFuncs.trio`: Functions used to define Python interaction task(s)
 - `pythonFuncs.trio`: Functions for interacting with Python (internal use)
+- `supportFuncs.trio`: Other supporting functions (internal use)
 
 The simplest development workflow is to import these functions into SkySpark,
 make changes *Code* app (and test via *Tools*), export back to Trio format, and
@@ -89,6 +109,7 @@ Extension App Note].
    
    - `taskFuncs.trio`
    - `pythonFuncs.trio`
+   - `supportFuncs.trio`
 
 4. (Optional) Pick a marker (or "flag") tag to attach to each imported function
    to facilitate easy querying for later export. 
@@ -183,12 +204,6 @@ Alternative Workflow:
 4. Manually copy the Trio-formatted function record(s) from the *Shell* to the
    relevant file(s) in the `lib/` directory, replacing the existing versions
    as applicable.
-
-Documentation
--------------
-
-Function documentation is available in the SkySpark *Doc* app under
-*nrelPredictiveAnalytics* or within the *Docs* interface in the *Code* app.
 
 License
 -------
