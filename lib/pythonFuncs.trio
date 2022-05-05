@@ -1,122 +1,51 @@
-name:prepDataForv5
+name:predAnalyticsPythonInit
 func
+nodoc
 src:
-  // prep data for v4
-  () => do
-    // Read a site record
-    myPoint: read(point and power and sensor) // should only be one of these
-  
-    // Read data
-    inputData: myPoint.hisRead(2021-12-01)
-      
-    intelcampTask: (session) => session
+  // Python session initialization callback
+  (session) => do
+    // Import required Python functions
+    session
       .pyExec("from intelcamp.entry_point import create_input_dataframe, run_model")
       .pyExec("from intelcamp.buildings_processing import prep_for_rnn")
+      .pyExec("import hxpy")
       .pyExec("import pandas as pd")
-      
-      // define configs
-      .pyDefine(
-        "configs", {
-          "use_case": "prediction",
-          "target_var": "x",
-          "DOW": ["binary_reg"],
-          "MOY": ["sincos"],
-          "HOD": ["sincos"],
-          "rolling_window": {
-            "active": true,
-            "type": "binned",
-            "minutes": 15
-          },
-          "data_time_interval_mins": 1,
-          "arch_version": 5,
-          "window": 24,
-          "sequence_freq_min": 15,
-          "arch_type": "RNN",
-          "EC_future_gap_min": 0,
-          "data_split": "80:10:10",
-          "exp_dir": "/io/exp_dir",
-          "train_val_split": "Random",
-          "S2S_stagger": {
-            "initial_num": 72,
-            "decay": 0,
-            "secondary_num": 0
-         }
-        }
-      )
-      
-      // shape data
-      .pyDefine("my_grid", inputData)
-      .pyExec("my_data_frame = my_grid.to_dataframe()") // Pandas data frame
-      .pyExec("my_data_frame.set_index('ts')")
-      .pyExec("my_data_frame.index = pd.to_datetime(my_data_frame.index)")
-      .pyExec("my_data_frame = my_data_frame.drop(columns=['ts'])")
-      .pyExec("my_data_frame[configs['target_var']] = -999")
-  
-  
-    // This py() session will be persisted between task invocations
-    result: py({"image": "intelcamp"})
-      .pyInit(intelcampTask) // Init callback goes here; see docs
-      .pyEval("prep_for_rnn(configs, my_data_frame)") // prep data
-  
-    // Return result of pyEval()
-    return result
   end
 ---
-name:prepDataForv4
+name:predAnalyticsPythonModelSetup
 func
 src:
-  // prep data for v4
-  () => do
-    // Read a site record
-    myPoint: read(point and power and sensor) // should only be one of these
-  
-    // Read data
-    inputData: myPoint.hisRead(2021-12-01)
-      
-    intelcampTask: (session) => session
-      .pyExec("from intelcamp.entry_point import create_input_dataframe, run_model")
-      .pyExec("from intelcamp.buildings_processing import prep_for_rnn")
-      .pyExec("import pandas as pd")
-      
-      // define configs
-      .pyDefine(
-        "configs", {
-          "use_case": "prediction",
-          "target_var": "x",
-          "DOW": ["binary_reg"],
-          "MOY": ["sincos"],
-          "HOD": ["sincos"],
-          "rolling_window": {
-            "active": true,
-            "type": "binned",
-            "minutes": 15
-          },
-          "data_time_interval_mins": 1,
-          "arch_version": 4,
-          "window": 24,
-          "sequence_freq_min": 15,
-          "arch_type": "RNN",
-          "EC_future_gap_min": 0,
-          "data_split": "80:10:10",
-          "exp_dir": "/io/exp_dir",
-          "train_val_split": "Random",
-        }
-      )
-      
-      // shape data
-      .pyDefine("my_grid", inputData)
+  // Python commands for model setup
+  (session, config) => do
+    // TO DO: Add Uri argument for model and load model file from disk??
+    
+    // Read configuration via JSON
+    // TO DO: Would this be better performed by a native JSON read in Python?
+    if (config.isUri) do
+      config = ioReadJson(config)
+    end
+    
+    // Load configuration in Python
+    session.pyDefine("configs", config)
+  end
+---
+name:predAnalyticsPythonPredict
+func
+src:
+  // Python commands to execute a prediction call and return result
+  (session, data) => do
+    // Shape data
+    session
+      .pyDefine("my_grid", data)
       .pyExec("my_data_frame = my_grid.to_dataframe()") // Pandas data frame
       .pyExec("my_data_frame.set_index('ts')")
       .pyExec("my_data_frame.index = pd.to_datetime(my_data_frame.index)")
       .pyExec("my_data_frame = my_data_frame.drop(columns=['ts'])")
-      .pyExec("my_data_frame[configs['target_var']] = -999")
+      .pyExec("my_data_frame[configs['target_var']] = -999") // What does this do?
   
-  
-    // This py() session will be persisted between task invocations
-    result: py({"image": "intelcamp"})
-      .pyInit(intelcampTask) // Init callback goes here; see docs
-      .pyEval("prep_for_rnn(configs, my_data_frame)") // prep data
-  
-    // Return result of pyEval()
-    return result
+    // Execute data preparation (TEMPORARY)
+    // NOTE: This line eventually to be replaced with prediction call
+    session.pyEval("prep_for_rnn(configs, my_data_frame)") // prep data
+      
+    // NOTE: pyEval() closses the Python session unless the session is running in a task
   end
