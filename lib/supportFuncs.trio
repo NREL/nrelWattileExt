@@ -2,7 +2,7 @@ name:predAnalyticsReadHis
 doc:
   Predictive analytics helper function; reads history for **recs** and converts into a history grid compatible with a prediction call to Python via 'taskPredAnalyticsDocker()'
   
-  **TO DO:** Refine documentation
+  **TO DO:** Refine documentation. Should this be 'nodoc'?
 func
 src:
   // Helper function to read history and prepare it for conversion to Python dataframe

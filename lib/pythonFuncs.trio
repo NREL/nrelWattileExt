@@ -14,6 +14,7 @@ src:
 ---
 name:predAnalyticsPythonModelSetup
 func
+nodoc
 src:
   // Python commands for model setup
   (session, config) => do
@@ -31,6 +32,7 @@ src:
 ---
 name:predAnalyticsPythonPredict
 func
+nodoc
 src:
   // Python commands to execute a prediction call and return result
   (session, data) => do
