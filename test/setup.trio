@@ -1,23 +1,35 @@
 name:testEnvironmentSetup
 doc:
-  Setup script to import test environment database records, functions, and point history into the current SkySpark project. Expects to find the following files in 'io':
+  Setup script to import test environment database records, functions, and point history into the current SkySpark project. Expects to find the following files in 'io' (required):
   
   - 'example_funcs.trio'
   - 'folio_records.trio'
   - 'folio_his.zinc'
   
-  These files are available in the [intelligentcampus-model-deploy]`https://github.com/NREL/intelligentcampus-model-deploy` repo.
+  Optionally (with 'developer' option specified), also imports functions from:
+  
+  - 'pythonFuncs.trio'
+  - 'supportFuncs.trio'
+  - 'taskFuncs.trio'
+  
+  These files are available in the [intelligentcampus-model-deploy]`https://github.com/NREL/intelligentcampus-model-deploy` repo:
+  
+  - 'test/' directory for the required files
+  - 'lib/' directory for the developer function files
   
   The single **opts** argument accepts the following control options:
   
   - 'resetProject': Marker; reset the project before import
+  - 'developer': Marker; also imports functions for extension development
+    (see above)
   
   If 'resetProject' is present (set), then this setup function will:
   
   1. Trash all existing 'weatherStation', 'site', 'equip', 'point', and 'task' records from the current project
   2. Empty the trash
-  3. Overwrite any existing 'example*' functions found in 'example_funcs.trio'.
-  
+  3. Overwrite any existing 'example*' or 'test*' functions found in 'example_funcs.trio'
+  4. Overwrite any existing extension functions (if 'developer' option is set)
+    
   **Warning:** there is no recovery of any existing records after using the 'resetProject' option. Use with care!
 func
 src:
@@ -29,11 +41,11 @@ src:
     if (opts.has("resetProject")) do
       // Existing recs
       recsToTrash: readAll(weatherStation or site or equip or point or task)
-      
+  
       if (not recsToTrash.isEmpty) do
         // Trash recs
         recsToTrash.recTrash
-
+  
         // Empty trash
         folioEmptyTrash()
       end
@@ -44,7 +56,7 @@ src:
       .toRecList
       .map(rec => diff(null, rec, {add}))
       .commit
-    
+  
     // Helper function: create new or overwrite existing example functions
     funcDiff: (rec) => do
       existing: read(func and name==rec->name, false)
@@ -54,12 +66,25 @@ src:
         return diff(null, rec, {add})
       end
     end
-    
-    // Import example functions
-    funcs: ioReadTrio(`io/example_funcs.trio`)
+  
+    // Import example functions (required)
+    ioReadTrio(`io/example_funcs.trio`)
       .toRecList
       .map(funcDiff)
       .commit
+    
+    // Import developer functions (optional)
+    if (opts.has("developer")) do
+      // File list
+      files: ioDir(`io/`)
+      
+      // Find available developer functions
+      files = files
+        .findAll() f => ["pythonFuncs.trio", "supportFuncs.trio", "taskFuncs.trio"].contains(f->name)
+      
+      // Commit each
+      files.each() f => ioReadTrio(f->uri).toRecList.map(funcDiff).commit
+    end
     
     // Read point history
     data: ioReadZinc(`io/folio_his.zinc`)

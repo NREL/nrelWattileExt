@@ -1,0 +1,51 @@
+name:predAnalyticsPythonInit
+func
+nodoc
+src:
+  // Python session initialization callback
+  (session) => do
+    // Import required Python functions
+    session
+      .pyExec("from intelcamp.entry_point import create_input_dataframe, run_model")
+      .pyExec("from intelcamp.buildings_processing import prep_for_rnn")
+      .pyExec("import hxpy")
+      .pyExec("import pandas as pd")
+  end
+---
+name:predAnalyticsPythonModelSetup
+func
+nodoc
+src:
+  // Python commands for model setup
+  (session, config) => do
+    // TO DO: Add Uri argument for model and load model file from disk??
+    
+    // Read configuration via JSON
+    // TO DO: Would this be better performed by a native JSON read in Python?
+    if (config.isUri) do
+      config = ioReadJson(config)
+    end
+    
+    // Load configuration in Python
+    session.pyDefine("configs", config)
+  end
+---
+name:predAnalyticsPythonPredict
+func
+nodoc
+src:
+  // Python commands to execute a prediction call and return result
+  (session, data) => do
+    // Shape data
+    session
+      .pyDefine("my_grid", data)
+      .pyExec("my_data_frame = my_grid.to_dataframe()") // Pandas data frame
+      .pyExec("my_data_frame = my_data_frame.set_index('ts')")
+      .pyExec("my_data_frame[configs['target_var']] = -999") // Temporary; prevents dropping rows
+
+    // Execute data preparation (TEMPORARY)
+    // NOTE: This line eventually to be replaced with prediction call
+    session.pyEval("prep_for_rnn(configs, my_data_frame)") // prep data
+
+    // NOTE: pyEval() closses the Python session unless the session is running in a task
+  end
