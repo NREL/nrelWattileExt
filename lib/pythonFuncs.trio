@@ -35,17 +35,28 @@ func
 nodoc
 src:
   // Python commands to execute a prediction call and return result
-  (session, data) => do
+  (session, data, inputs) => do
     // Shape data
     session
       .pyDefine("my_grid", data)
+    .pyDefine("inputs", inputs)
+
+    // shape data
       .pyExec("my_data_frame = my_grid.to_dataframe()") // Pandas data frame
       .pyExec("my_data_frame = my_data_frame.set_index('ts')")
       .pyExec("my_data_frame[configs['target_var']] = -999") // Temporary; prevents dropping rows
 
+    // rename columns
+    .pyExec("new_column_names = [column['dis'] for column in inputs]")
+    .pyExec("column_specification = {f'v{i}':str(name) for i, name in enumerate(new_column_names)}")
+    .pyExec("my_data_frame = my_data_frame.rename(columns=column_specification)")
+
+    // proceess dataset
+    .pyExec("train_df, val_df = prep_for_rnn(configs, my_data_frame)")
+
     // Execute data preparation (TEMPORARY)
     // NOTE: This line eventually to be replaced with prediction call
-    session.pyEval("prep_for_rnn(configs, my_data_frame)") // prep data
+    session.pyEval("run_model(configs, train_df, val_df)") // prep data
 
     // NOTE: pyEval() closses the Python session unless the session is running in a task
   end
