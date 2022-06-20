@@ -77,7 +77,7 @@ src:
       data: predAnalyticsReadHis(msg->inputs, span)
   
       // Call prediction: see predAnalyticsPythonPredict()
-      output: pySession.predAnalyticsPythonPredict(data)
+      output: pySession.predAnalyticsPythonPredict(data, msg->inputs)
       
       // NOTE: For the moment, predAnalyticsPythonPredict() is only running prep_for_rnn
       
