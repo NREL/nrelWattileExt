@@ -12,7 +12,7 @@ Once [Wattile] is a published package (or the Github repo is public), the
 Dockerfile will change and a local copy of Wattile won't be required.
 
 [Wattile]: https://github.com/NREL/Wattile/ "Wattile"
-[nrelWattileExt] https://github.com/NREL/intelligentcampus-model-deploy "TO DO: change this URL"
+[nrelWattileExt]: https://github.com/NREL/intelligentcampus-model-deploy "TO DO: change this URL"
 
 Instructions
 ------------
