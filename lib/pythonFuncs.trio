@@ -5,9 +5,10 @@ src:
   // Python session initialization callback
   (session) => do
     // Import required Python functions
+    // TO DO: Was renaming "intelcamp" to "wattile" here correct??
     session
-      .pyExec("from intelcamp.entry_point import create_input_dataframe, run_model")
-      .pyExec("from intelcamp.buildings_processing import prep_for_rnn")
+      .pyExec("from wattile.entry_point import create_input_dataframe, run_model")
+      .pyExec("from wattile.buildings_processing import prep_for_rnn")
       .pyExec("import hxpy")
       .pyExec("import pandas as pd")
   end

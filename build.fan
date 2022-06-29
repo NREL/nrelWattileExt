@@ -6,29 +6,29 @@
 using build
 
 **
-** Build: nrelPredictiveAnalyticsExt
+** Build: nrelWattileExt
 **
 
 class Build : BuildPod
 {
   new make()
   {
-    podName = "nrelPredictiveAnalyticsExt"
-    summary = "Interface extension for NREL predictive analytics tools"
+    podName = "nrelWattileExt"
+    summary = "Interface extension for the Wattile Python package"
     version = Version("0.1")
     meta    = [
-                "ext.name":        "nrelPredictiveAnalytics", // TO DO: Update
+                "ext.name":        "nrelWattile",
                 "ext.icon":        "target",
                 "ext.depends":     "docker,py",
                 "org.name":        "NREL",
                 "org.uri":         "https://www.nrel.gov/",
-                "proj.name":       "NREL Predictive Analytics Extension", // TO DO: Update
+                "proj.name":       "NREL Wattile Extension",
                 "proj.uri":        "https://github.com/NREL/intelligentcampus-model-deploy", // TO DO: Update
                 "license.name":    "Commercial", // TO DO: Update
               ]
     depends = ["sys 1.0"]
     resDirs = [`lib/`, `locale/`]
-    index   = ["skyarc.ext": "nrelPredictiveAnalyticsExt"]
+    index   = ["skyarc.ext": "nrelWattileExt"]
   }
   
   // FUTURE USE: Stackhub Publishing
