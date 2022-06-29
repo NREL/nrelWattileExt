@@ -6,7 +6,7 @@ src:
   // Contains four calls to the same task; returns results in a 4-element list
   
   // 'pythonTask' argument is the task record or record ID, e.g. from one of...
-  //   task(@p:pred_test:r:29e7afcb-0fcefdd7)
+  //   task(@p:wattile_test:r:29e7afcb-0fcefdd7)
   //   read(task and dis=="Persistent Python Container Task")
   
   // This example to be removed in the future; retained for now because it is
@@ -90,11 +90,11 @@ src:
   // Placeholder test harnass to run a prediction for a V4 model
   // Adapted from previous prepDataForv4() function, but leverages task framework
   
-  // 'predAnalyticsTask' argument is the task record or record ID, e.g. from one of...
-  //   task(@p:pred_test:r:2a06ba36-9cf5ad53)
+  // 'wattileTask' argument is the task record or record ID, e.g. from one of...
+  //   task(@p:wattile_test:r:2a06ba36-9cf5ad53)
   //   read(task and dis=="Predictive Analytics Python Task")
   
-  (predAnalyticsTask) => do
+  (wattileTask) => do
     /* Define inputs */
   
     // (Eventually these will be user inputs passed as arguments, of some variety, to the prediction task)
@@ -170,13 +170,13 @@ src:
     // does not affect data marshalling of grids SkySpark -> Python. (Column names "v0", "v1",
     // etc. are used instead, regardless of 'dis' tag.)
     inputs: [
-      {id:@p:pred_test:r:278f8943-6a199bd7, dis:"SRRL BMS Dew Point Temperature"},
-      {id:@p:pred_test:r:278f79c0-03da5abc, dis:"SRRL BMS Diffuse Horizontal Irradiance"},
-      {id:@p:pred_test:r:278f79c0-4fe536b4, dis:"SRRL BMS Direct Normal Irradiance"},
-      {id:@p:pred_test:r:278f79c0-8a8f26b0, dis:"SRRL BMS Dry Bulb Temperature"},
-      {id:@p:pred_test:r:278f79c0-8d722bdb, dis:"SRRL BMS Global Horizontal Irradiance"},
-      {id:@p:pred_test:r:278f79c0-e7db4305, dis:"SRRL BMS Relative Humidity"},
-      {id:@p:pred_test:r:278f79c0-c1f48e5c, dis:"SRRL BMS Wind Speed at 19'"}
+      {id:@p:wattile_test:r:278f8943-6a199bd7, dis:"SRRL BMS Dew Point Temperature"},
+      {id:@p:wattile_test:r:278f79c0-03da5abc, dis:"SRRL BMS Diffuse Horizontal Irradiance"},
+      {id:@p:wattile_test:r:278f79c0-4fe536b4, dis:"SRRL BMS Direct Normal Irradiance"},
+      {id:@p:wattile_test:r:278f79c0-8a8f26b0, dis:"SRRL BMS Dry Bulb Temperature"},
+      {id:@p:wattile_test:r:278f79c0-8d722bdb, dis:"SRRL BMS Global Horizontal Irradiance"},
+      {id:@p:wattile_test:r:278f79c0-e7db4305, dis:"SRRL BMS Relative Humidity"},
+      {id:@p:wattile_test:r:278f79c0-c1f48e5c, dis:"SRRL BMS Wind Speed at 19'"}
     ]
   
     // TIMESTAMP: What is the timestamp around which we want to call the prediction
@@ -186,14 +186,14 @@ src:
   
     // Uses the task framework to send actions and retrieve results
   
-    // Model setup: see predAnalyticsPythonTask() and predAnalyticsModelSetup()
-    predAnalyticsTask.taskSend({
+    // Model setup: see wattilePythonTask() and wattileModelSetup()
+    wattileTask.taskSend({
       action:   "setup",
       config:   config
     })
   
-    // Read and prepare data: see predAnalyticsPythonTask(), predAnalyticsReadHis(), and predAnalyticsPythonPredict()
-    future: predAnalyticsTask.taskSend({
+    // Read and prepare data: see wattilePythonTask(), wattileReadHis(), and wattilePythonPredict()
+    future: wattileTask.taskSend({
       action:   "predict",
       inputs:   inputs,
       ts:       ts,
@@ -211,11 +211,11 @@ src:
   // Placeholder test harnass to run a prediction for a V5 model
   // Adapted from previous prepDataForv5() function, but leverages task framework
   
-  // 'predAnalyticsTask' argument is the task record or record ID, e.g. from one of...
-  //   task(@p:pred_test:r:2a06ba36-9cf5ad53)
+  // 'wattileTask' argument is the task record or record ID, e.g. from one of...
+  //   task(@p:wattile_test:r:2a06ba36-9cf5ad53)
   //   read(task and dis=="Predictive Analytics Python Task")
   
-  (predAnalyticsTask) => do
+  (wattileTask) => do
     /* Define inputs */
   
     // (Eventually these will be user inputs passed as arguments, of some variety, to the prediction task)
@@ -259,13 +259,13 @@ src:
     // does not affect data marshalling of grids SkySpark -> Python. (Column names "v0", "v1",
     // etc. are used instead, regardless of 'dis' tag.)
     inputs: [
-      {id:@p:pred_test:r:278f8943-6a199bd7, dis:"SRRL BMS Dew Point Temperature"},
-      {id:@p:pred_test:r:278f79c0-03da5abc, dis:"SRRL BMS Diffuse Horizontal Irradiance"},
-      {id:@p:pred_test:r:278f79c0-4fe536b4, dis:"SRRL BMS Direct Normal Irradiance"},
-      {id:@p:pred_test:r:278f79c0-8a8f26b0, dis:"SRRL BMS Dry Bulb Temperature"},
-      {id:@p:pred_test:r:278f79c0-8d722bdb, dis:"SRRL BMS Global Horizontal Irradiance"},
-      {id:@p:pred_test:r:278f79c0-e7db4305, dis:"SRRL BMS Relative Humidity"},
-      {id:@p:pred_test:r:278f79c0-c1f48e5c, dis:"SRRL BMS Wind Speed at 19'"}
+      {id:@p:wattile_test:r:278f8943-6a199bd7, dis:"SRRL BMS Dew Point Temperature"},
+      {id:@p:wattile_test:r:278f79c0-03da5abc, dis:"SRRL BMS Diffuse Horizontal Irradiance"},
+      {id:@p:wattile_test:r:278f79c0-4fe536b4, dis:"SRRL BMS Direct Normal Irradiance"},
+      {id:@p:wattile_test:r:278f79c0-8a8f26b0, dis:"SRRL BMS Dry Bulb Temperature"},
+      {id:@p:wattile_test:r:278f79c0-8d722bdb, dis:"SRRL BMS Global Horizontal Irradiance"},
+      {id:@p:wattile_test:r:278f79c0-e7db4305, dis:"SRRL BMS Relative Humidity"},
+      {id:@p:wattile_test:r:278f79c0-c1f48e5c, dis:"SRRL BMS Wind Speed at 19'"}
     ]
   
     // TIMESTAMP: What is the timestamp around which we want to call the prediction
@@ -275,14 +275,14 @@ src:
   
     // Uses the task framework to send actions and retrieve results
   
-    // Model setup: see predAnalyticsPythonTask() and predAnalyticsModelSetup()
-    predAnalyticsTask.taskSend({
+    // Model setup: see wattilePythonTask() and wattileModelSetup()
+    wattileTask.taskSend({
       action:   "setup",
       config:   config
     })
   
-    // Read and prepare data: see predAnalyticsPythonTask(), predAnalyticsReadHis(), and predAnalyticsPythonPredict()
-    future: predAnalyticsTask.taskSend({
+    // Read and prepare data: see wattilePythonTask(), wattileReadHis(), and wattilePythonPredict()
+    future: wattileTask.taskSend({
       action:   "predict",
       inputs:   inputs,
       ts:       ts,

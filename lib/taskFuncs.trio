@@ -1,4 +1,4 @@
-name:predAnalyticsPythonTask
+name:wattilePythonTask
 doc:
   Task function to handle Docker container interactions. 
   
@@ -8,11 +8,11 @@ doc:
   
   Set up the task with this function as the 'taskExpr' like this...
   
-    (msg) => predAnalyticsPythonTask(msg, "name_of_image")
+    (msg) => wattilePythonTask(msg, "name_of_image")
   
   I would have thought the following should also work, but it doesn't...
   
-    predAnalyticsPythonTask(_, "name_of_image")
+    wattilePythonTask(_, "name_of_image")
   
   Actions, specified via 'action' tag of **msg** as strings, are documented below.
   
@@ -53,7 +53,7 @@ src:
     taskProgress({action:action})
       
     // Initialize Python session
-    pySession: py({image:image}).pyInit(predAnalyticsPythonInit)
+    pySession: py({image:image}).pyInit(wattilePythonInit)
     
     // Initialization
     if (action == "init") do
@@ -62,8 +62,8 @@ src:
     
     // Model setup
     else if (action == "setup") do
-      // Load model and configuration into Python session: see predAnalyticsPythonModelSetup()
-      pySession.predAnalyticsPythonModelSetup(msg->config)
+      // Load model and configuration into Python session: see wattilePythonModelSetup()
+      pySession.wattilePythonModelSetup(msg->config)
       
       // Return
       return "ok"
@@ -73,13 +73,13 @@ src:
       // Calculate span based on specified winfow
       span: (msg->ts - msg->window)..(msg->ts)
   
-      // Read and prepare data: see predAnalyticsReadHis()
-      data: predAnalyticsReadHis(msg->inputs, span)
+      // Read and prepare data: see wattileReadHis()
+      data: wattileReadHis(msg->inputs, span)
   
-      // Call prediction: see predAnalyticsPythonPredict()
-      output: pySession.predAnalyticsPythonPredict(data, msg->inputs)
+      // Call prediction: see wattilePythonPredict()
+      output: pySession.wattilePythonPredict(data, msg->inputs)
       
-      // NOTE: For the moment, predAnalyticsPythonPredict() is only running prep_for_rnn
+      // NOTE: For the moment, wattilePythonPredict() is only running prep_for_rnn
       
       // Return
       return output

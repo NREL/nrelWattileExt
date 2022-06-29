@@ -56,14 +56,14 @@ Setup Instructions
 2. From the host interface, create a new empty project with the following
    metadata:
    
-   1. **name:** "pred_test" (required)
-   2. **dis:** "Predictive Analytics Test" (optional)
-   3. **doc:** "SkySpark test environment for integrating predictive analytics time series models using Python and Docker" (optional)
+   1. **name:** "wattile_test" (required)
+   2. **dis:** "Wattile Test" (optional)
+   3. **doc:** "SkySpark test environment for Wattile interaction using Python and Docker" (optional)
 
-   Note: if the default project name "pred_test" is altered, remember to use the
-   new name where applicable in each of the following steps.
+   Note: if the default project name "wattile_test" is altered, remember to use
+   the new name where applicable in each of the following steps.
 
-3. Navigate to the new *Predictive Analytics Test* project you just created
+3. Navigate to the new *Wattile Test* project you just created
 
 4. Within the *Settings* app, *Exts* tab, enable the `docker`, `py`, and
    `task` exts.
@@ -73,7 +73,7 @@ Setup Instructions
    `nrelWattile`. 
 
 6. Within the *Tools* app, *Files* tab, upload the following files from this
-   directory to `proj > pred_test > io`:
+   directory to `proj > wattile_test > io`:
    
    1. `setup.trio`
    2. `example_funcs.trio`
@@ -163,7 +163,7 @@ Getting Started
 After setup, to get started, first start Docker (if it isn't alreay running).
 Then, inspect and run the following functions:
 
-1. `task(@p:pred_test:r:29e7afcb-0fcefdd7).examplePythonInteraction`
-2. `task(@p:pred_test:r:2a06ba36-9cf5ad53).testPrepDataV4`
+1. `task(@p:wattile_test:r:29e7afcb-0fcefdd7).examplePythonInteraction`
+2. `task(@p:wattile_test:r:2a06ba36-9cf5ad53).testPrepDataV4`
 
-You can also try `testPrepDataV4`.
+You can also try `testPrepDataV5`.

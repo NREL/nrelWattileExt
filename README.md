@@ -100,10 +100,10 @@ Extension App Note].
 1. Launch SkySpark and log in with an admin or superuser account.
 
 2. Create a project to use for development. (These instructions assume your
-   project is named "pred_test".)
+   project is named "wattile_test".)
 
 3. Within the *Tools* app, *Files* tab, upload some or all of following files
-   from `lib/` directory to `proj > pred_test > io`, according to your
+   from `lib/` directory to `proj > wattile_test > io`, according to your
    development needs:
    
    - `taskFuncs.trio`

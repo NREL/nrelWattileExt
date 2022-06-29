@@ -168,4 +168,4 @@ taskExpr:examplePythonTask
 id:@2a06ba36-9cf5ad53 "Predictive Analytics Python Task"
 dis:Predictive Analytics Python Task
 task
-taskExpr:"(msg) => predAnalyticsPythonTask(msg, \"wattile\")"
+taskExpr:"(msg) => wattilePythonTask(msg, \"wattile\")"

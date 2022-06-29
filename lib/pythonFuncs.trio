@@ -1,4 +1,4 @@
-name:predAnalyticsPythonInit
+name:wattilePythonInit
 func
 nodoc
 src:
@@ -13,7 +13,7 @@ src:
       .pyExec("import pandas as pd")
   end
 ---
-name:predAnalyticsPythonModelSetup
+name:wattilePythonModelSetup
 func
 nodoc
 src:
@@ -31,7 +31,7 @@ src:
     session.pyDefine("configs", config)
   end
 ---
-name:predAnalyticsPythonPredict
+name:wattilePythonPredict
 func
 nodoc
 src:
