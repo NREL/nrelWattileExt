@@ -79,6 +79,7 @@ Setup Instructions
    2. `example_funcs.trio`
    3. `folio_records.trio`
    4. `folio_his.zinc`
+   5. `data_config.json` (Temporary; will not be needed in the future)
    
    Alternatively, transfer these files manually to your SkySpark project's `io`
    directory using your operating system. (If you intend to develop the
@@ -96,14 +97,21 @@ Setup Instructions
    or remove the existing function first. Otherwise you will end up with a
    duplicate setup function.)
 
-8. In the *Tools* app, *Shell* tab, execute the newly imported
-   `testEnvironmentSetup()` function:
+8. For initial setup, in the *Tools* app, *Shell* tab, execute the newly
+   imported `testEnvironmentSetup()` function:
    
    ```
    testEnvironmentSetup()
    ```
    
-   See *Notes* below for some configuration options you can pass to the
+   For subsequent setups, if you are attempting to reset your local test
+   environment with updated functions and data, use:
+   
+   ```
+   testEnvironmentSetup({resetProject})
+   ```
+   
+   Also see *Notes* below for some configuration options you can pass to the
    `testEnvironmentSetup()` function.
 
 To check that the test environment is correctly configured, you can run the
