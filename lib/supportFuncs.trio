@@ -9,7 +9,7 @@ src:
   (recs, span) => do
     // Convert to record list
     recs = recs.toRecList
-    
+  
     // Read histories and define column names (via 'dis' tags)
     data: recs.map() p => do
       // Get column 'dis'
@@ -17,24 +17,22 @@ src:
       if (p.has("dis")) do
         // Explicit pre-defined 'dis' (if available)
         dis: p["dis"]
-      
+  
       else do
         // Extract 'dis' from point metadata in database
         dis: p.toRecId.readById.dis
       end
-      
-      // TO DO: Explicit column renaming required? Column name mapping performed on Python side?
-      
+  
       // Read history
       history: p.toRecId.hisRead(span) // toRecId() here prevents some hisRead() misfires
-      
+  
       // Check for empty history
       if (history.isEmpty) throw "No history found for input \"" + dis + "\" and timespan " + format(span)
-      
+  
       // Fix column 'dis' tag, and return
       history.addColMeta("v0", {dis:dis, -disMacro})
     end
-    
+  
     // Combine data, clip to window, and return
     hisJoin(data).hisClip
   end

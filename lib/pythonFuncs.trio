@@ -5,12 +5,11 @@ src:
   // Python session initialization callback
   (session) => do
     // Import required Python functions
-    // TO DO: Was renaming "intelcamp" to "wattile" here correct??
     session
-      .pyExec("from wattile.entry_point import create_input_dataframe, run_model")
-      .pyExec("from wattile.buildings_processing import prep_for_rnn")
       .pyExec("import hxpy")
       .pyExec("import pandas as pd")
+      .pyExec("from wattile.entry_point import create_input_dataframe, run_model")
+      .pyExec("from wattile.buildings_processing import prep_for_rnn")
   end
 ---
 name:wattilePythonModelSetup
@@ -18,46 +17,115 @@ func
 nodoc
 src:
   // Python commands for model setup
-  (session, config) => do
-    // TO DO: Add Uri argument for model and load model file from disk??
+  (session, uri) => do
+    // Verify uri is a directory, exists, and is not empty
+    if (not uriIsDir(uri)) throw "Uri `" + uri.toStr + "` is not a directory"
+    if (ioDir(uri).isEmpty) throw "Directory `" + uri.toStr + "` is empty or does not exist"
     
-    // Read configuration via JSON
-    // TO DO: Would this be better performed by a native JSON read in Python?
-    if (config.isUri) do
-      config = ioReadJson(config)
+    // Verify data_config.json exists
+    if (ioDir(uri).find(f => f->name=="data_config.json") == null) do
+      throw "Cannot find 'data_config.json' in specified model directory."
     end
     
-    // Load configuration in Python
-    session.pyDefine("configs", config)
+    // Read model input data configuration
+    dataConfig: ioReadJson(uri + "data_config.json", {v3}) // TO DO: Update to v4 encoding
+    
+    // Extract list of required predictors (and verify that each exists)
+    predictors: dataConfig->predictors.map() p => do
+      // Get id
+      id: p.toRecId
+      
+      // Verify corresponding record exists
+      rec: readById(id, false)
+      if (rec == null) throw "Predictor @" + id.toStr + " not found."
+      
+      // Synthesize 'dis' tag
+      dis: if (p.has("dis")) p->dis else p->column
+      
+      // Return
+      {
+        id: rec.toRecId,     // Required
+        dis: dis,            // Optional
+        pythonCol: p->column // Required
+      }
+    end
+    
+    // Cache model input data configuration and list of predictors
+    taskLocalSet("dataConfig", dataConfig)
+    taskLocalSet("predictors", predictors)
+    
+    // TEMPORARY //
+    
+    // All of the following is temporary until reading training config for prediction
+    // is handled internally by Wattile; see https://github.com/NREL/Wattile/issues/108
+  
+    // Verify configs.json exists
+    if (ioDir(uri).find(f => f->name=="configs.json") == null) do
+      throw "Cannot find 'configs.json' in specified model directory."
+    end
+  
+    // Load model training configuration
+    modelConfig: ioReadJson(uri + "configs.json")
+    
+    // Set use case to "prediction"
+    modelConfig = modelConfig.set("use_case", "prediction")
+    
+    // Set working directory to uri
+    pythonModelDir: "/" + concat(ioInfo(uri)->uri.uriPath[2..-1], "/") + "/" // Indexing here trims path to start at `io`
+    modelConfig = modelConfig.set("exp_dir", pythonModelDir)
+    
+    // Cache model training configuration
+    taskLocalSet("modelConfig", modelConfig)
+    
+    // Load model configuration into Python
+    session.pyDefine("configs", modelConfig)
   end
 ---
 name:wattilePythonPredict
 func
 nodoc
 src:
-  // Python commands to execute a prediction call and return result
-  (session, data, inputs) => do
-    // Shape data
+  // Python commands to execute a single prediction call and return result
+  (session, ts) => do
+    // Retrieve model configuration and predictors from task variables
+    dataConfig: taskLocalGet("dataConfig")
+    predictors: taskLocalGet("predictors")
+    
+    // TO DO: Need to align ts to native interval of model?
+    
+    // Calculate required span for history read
+    span: (ts - dataConfig->window->duration)..(ts)
+  
+    // Read and prepare data: see wattileReadHis()
+    data: wattileReadHis(predictors, span)
+    
+    // Develop column name specification for SkySpark -> Python conversion
+    getSkySparkColName: (column) => name(column)
+    getPythonColName: (column) => do
+      id: column.meta["id"]
+      if (id == null) return null // Should only happen for "ts"
+      val: predictors.find(p => id==p->id)->pythonCol
+    end
+    columnSpec: data
+      .gridColsToDict(getSkySparkColName, getPythonColName)
+      .findAll(v => v != null)
+    
+    // Load data into Python
     session
       .pyDefine("my_grid", data)
-    .pyDefine("inputs", inputs)
-
-    // shape data
       .pyExec("my_data_frame = my_grid.to_dataframe()") // Pandas data frame
       .pyExec("my_data_frame = my_data_frame.set_index('ts')")
       .pyExec("my_data_frame[configs['target_var']] = -999") // Temporary; prevents dropping rows
-
-    // rename columns
-    .pyExec("new_column_names = [column['dis'] for column in inputs]")
-    .pyExec("column_specification = {f'v{i}':str(name) for i, name in enumerate(new_column_names)}")
-    .pyExec("my_data_frame = my_data_frame.rename(columns=column_specification)")
-
-    // proceess dataset
-    .pyExec("train_df, val_df = prep_for_rnn(configs, my_data_frame)")
-
-    // Execute data preparation (TEMPORARY)
-    // NOTE: This line eventually to be replaced with prediction call
-    session.pyEval("run_model(configs, train_df, val_df)") // prep data
-
+  
+    // Rename columns
+    session
+      .pyDefine("column_specification", columnSpec)
+      .pyExec("my_data_frame = my_data_frame.rename(columns=column_specification)")
+  
+    // Prep data and run prediction
+    session
+      .pyExec("train_df, val_df = prep_for_rnn(configs, my_data_frame)")
+      .pyEval("run_model(configs, train_df, val_df)") // prep data
+  
     // NOTE: pyEval() closses the Python session unless the session is running in a task
   end

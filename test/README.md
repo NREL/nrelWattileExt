@@ -185,7 +185,6 @@ Getting Started
 After setup, to get started, first start Docker (if it isn't alreay running).
 Then, inspect and run the following functions:
 
-1. `task(@p:wattile_test:r:29e7afcb-0fcefdd7).examplePythonInteraction`
-2. `task(@p:wattile_test:r:2a06ba36-9cf5ad53).testPrepDataV4`
+1. `task(@p:wattile_test:r:29e7afcb-0fcefdd7).testPrediction`
 
-You can also try `testPrepDataV5`.
+**TO DO:** Cache URI on a point, call prediction and store history

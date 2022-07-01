@@ -1,295 +1,36 @@
-name:examplePythonInteraction
+name:testPrediction
 func
 src:
-  // Example Python Interaction
-  // Python interaction using a persistent session within a SkySpark task
-  // Contains four calls to the same task; returns results in a 4-element list
-  
-  // 'pythonTask' argument is the task record or record ID, e.g. from one of...
-  //   task(@p:wattile_test:r:29e7afcb-0fcefdd7)
-  //   read(task and dis=="Persistent Python Container Task")
-  
-  // This example to be removed in the future; retained for now because it is
-  // still a nice basic illustration of interacting with Python in a task
-  
-  (pythonTask) => do
-    // Example 1: Run a generic Python command
-    res1: taskSend(pythonTask, "hex(11)") // "0xb"
-      .futureGet
-      
-    // futureGet() is required here; we must wait for the task result to come back
-    // (See task framework docs)
-    
-    // Example 2: Retrieve a value from a Python variable defined in the container
-    res2: taskSend(pythonTask, "myPythonVar")
-      .futureGet
-  
-    // Example 3: Run a custom function defined in the container
-    res3: taskSend(pythonTask, "myPythonFunc(1)")
-      .futureGet
-  
-    // Example 4: Pass some data via `io/`
-    
-    // Read some data and write it to CSV
-    read(point and power and sensor) // should only be one of these
-      .hisRead(2021-12-01)
-      .setColMeta("ts", {dis:"ts"}) // Forces column header to "ts"
-      .setColMeta("v0", {dis:"v0"}) // Forces column header to "v0"
-      .ioWriteCsv(`io/my_data.csv`)
-     
-    // Note: without the setColMeta() calls above, the CSV data headers will not
-    // be valid SkySpark tag names. They read into Python fine, but then the function
-    // will encounter an error on conversion back to SkySpark.
-    
-    // Read it into Python via Pandas and then return it
-    res4: taskSend(pythonTask, "hxpy.haystack.grid.Grid.from_dataframe(pandas.read_csv('/io/my_data.csv'))")
-      .futureGet
-    
-    // Combine results in a list and return for examination
-    [res1, res2, res3, res4]
-  end
----
-name:examplePythonTask
-func
-src:
-  // Example Python Task
-  // Uses the SkySpark task framework to keep a persistent Python session available
-  
-  // Notes...
-  //   1. First you must have the Python docker image pulled; see SkySpark docs
-  //   2. 'msg' argument is a string containing Python code to pass to pyEval()
-  //   3. This is a very simple structure for task demonstration only
-  
-  // This example to be removed in the future; retained for now because it is
-  // still a nice basic illustration of interacting with Python in a task
-  
-  // Example task
-  (msg) => do
-    // Note: no type checking on 'msg' in this simple demo!
-  
-    // Session initialization callback; gets called once only
-    // (See Python extension docs)
-    taskPyInit: (session) => session
-      .pyExec("import pandas")
-      .pyExec("import hxpy")
-      .pyDefine("myPythonVar", "foo")
-      .pyExec("def myPythonFunc(x): return x + 1")
-    
-    // This py() session will be persisted between task invocations
-    result: py()
-      .pyInit(taskPyInit) // Init callback goes here; see docs
-      .pyEval(msg) // Here is where you might do some more complicated stuff!
-    
-    // Return result of pyEval()
-    return result
-  end
----
-name:testPrepDataV4
-func
-src:
-  // Placeholder test harnass to run a prediction for a V4 model
-  // Adapted from previous prepDataForv4() function, but leverages task framework
+  // Test harnass to run a prediction against the built-in V4 test model
+  // Note: V4 model is copied to io/wattile/models/test_model/ as part of testEnvironmentSetup()
   
   // 'wattileTask' argument is the task record or record ID, e.g. from one of...
   //   task(@p:wattile_test:r:2a06ba36-9cf5ad53)
-  //   read(task and dis=="Predictive Analytics Python Task")
+  //   read(task and dis=="Wattile Python Task")
   
   (wattileTask) => do
-    /* Define inputs */
+    // Model directory
+    uri: `io/wattile/models/test_model/`
   
-    // (Eventually these will be user inputs passed as arguments, of some variety, to the prediction task)
-  
-    // CONFIG: Specified manually for testing
-    config: {
-      "use_case": "prediction", // TO DO: This should eventually be a separate function, not a configuration option?
-      "start_time": "2018-01-01T00:00:00-07:00",
-      "end_time": "2022-01-01T00:00:00-07:00",
-      "target_var": "Synthetic Site Electricity Main Total Power", // NOTE: modified from "x"; not used currently
-      "predictor_columns": [
-        "SRRL BMS Dew Point Temperature",
-        "SRRL BMS Diffuse Horizontal Irradiance",
-        "SRRL BMS Direct Normal Irradiance",
-        "SRRL BMS Dry Bulb Temperature",
-        "SRRL BMS Global Horizontal Irradiance",
-        "SRRL BMS Relative Humidity",
-        "SRRL BMS Wind Speed at 19'"
-      ],
-
-      "DOW": ["binary_reg"],
-      "MOY": ["sincos"],
-      "HOD": ["sincos"],
-      "rolling_window": {
-        "active": true,
-        "type": "binned",
-        "minutes": 15
-      },
-      "data_time_interval_mins": 1,
-      "arch_version": 4,
-      "arch_type_variant": "lstm",
-      "window": 12,
-      "sequence_freq_min": 15,
-      "arch_type": "RNN",
-      "EC_future_gap_min": 0,
-      "data_split": "80:10:10",
-      "train_val_split": "Random",
-
-      "exp_dir": "/trained_models/v4_exp_dir/",
-      "transformation_method": "minmaxscale",
-      "num_epochs": 2,
-      "run_resume": false,
-      "train_batch_size": 5,
-      "val_batch_size": 1,
-      "qs": [
-        0.025,
-        0.25,
-        0.5,
-        0.75,
-        0.975
-      ],
-      "hidden_nodes": 5,
-      "layer_dim": 1,
-      "exp_id": "Debugging_for_rolling_stats",
-      /*
-      "data_dir": "/io/data_dir", // Needed to run "use_case" : "train"
-      "splicer": {
-        "active": false,          // Needed to run "use_case" : "train"
-      },
-      "random_seed": 42,          // Needed to run "use_case" : "train"
-      "train_size_factor": 1,     // Needed to run "use_case" : "train"; this value is probably garbage
-      */
-    }
-  
-    // WINDOW: Extracted from configuration for now; the logic here needs to be verified
-    window: config->sequence_freq_min.as(1min) *  (config->window + 1) // In minutes
-  
-    // INPUTS:
-    // Each ID has a 'dis' tag manually defined to match the original trained model from the
-    // intelligentcampus-pred-analytics repo. We should get the two synthetic data set names
-    // and ids aligned so we don't have to use this hack. (Eventually this should load from
-    // a data set configuration file or similar.) Note that 'dis' tag affects CSV export, but
-    // does not affect data marshalling of grids SkySpark -> Python. (Column names "v0", "v1",
-    // etc. are used instead, regardless of 'dis' tag.)
-    inputs: [
-      {id:@p:wattile_test:r:278f8943-6a199bd7, dis:"SRRL BMS Dew Point Temperature"},
-      {id:@p:wattile_test:r:278f79c0-03da5abc, dis:"SRRL BMS Diffuse Horizontal Irradiance"},
-      {id:@p:wattile_test:r:278f79c0-4fe536b4, dis:"SRRL BMS Direct Normal Irradiance"},
-      {id:@p:wattile_test:r:278f79c0-8a8f26b0, dis:"SRRL BMS Dry Bulb Temperature"},
-      {id:@p:wattile_test:r:278f79c0-8d722bdb, dis:"SRRL BMS Global Horizontal Irradiance"},
-      {id:@p:wattile_test:r:278f79c0-e7db4305, dis:"SRRL BMS Relative Humidity"},
-      {id:@p:wattile_test:r:278f79c0-c1f48e5c, dis:"SRRL BMS Wind Speed at 19'"}
-    ]
-  
-    // TIMESTAMP: What is the timestamp around which we want to call the prediction
+    // Timestamp at which we want to call the prediction
     ts: dateTime(2021-12-08, time(08,00), "Denver") // December 8, 2021 08:00 MST
-  
-    /* Run prep_for_rnn in Python */
   
     // Uses the task framework to send actions and retrieve results
   
-    // Model setup: see wattilePythonTask() and wattileModelSetup()
+    // Model setup: read model configuration from the test model directory
+    // See wattilePythonTask() and wattileModelSetup()
     wattileTask.taskSend({
-      action:   "setup",
-      config:   config
+      action: "setup",
+      uri:    uri
     })
   
-    // Read and prepare data: see wattilePythonTask(), wattileReadHis(), and wattilePythonPredict()
+    // Run prediction for model setup created in the previous step
+    // See wattilePythonTask() and wattilePythonPredict()
     future: wattileTask.taskSend({
-      action:   "predict",
-      inputs:   inputs,
-      ts:       ts,
-      window:   window
+      action: "predict",
+      ts:     ts
     })
   
     // Get result
     future.futureGet()
-  
-  end
----
-name:testPrepDataV5
-func
-src:
-  // Placeholder test harnass to run a prediction for a V5 model
-  // Adapted from previous prepDataForv5() function, but leverages task framework
-  
-  // 'wattileTask' argument is the task record or record ID, e.g. from one of...
-  //   task(@p:wattile_test:r:2a06ba36-9cf5ad53)
-  //   read(task and dis=="Predictive Analytics Python Task")
-  
-  (wattileTask) => do
-    /* Define inputs */
-  
-    // (Eventually these will be user inputs passed as arguments, of some variety, to the prediction task)
-  
-    // CONFIG: Specified manually for testing
-    config: {
-      "use_case": "prediction", // TO DO: This should eventually be a separate function, not a configuration option?
-      "target_var": "Synthetic Site Electricity Main Total Power", // NOTE: modified from "x"; not used currently
-      "DOW": ["binary_reg"],
-      "MOY": ["sincos"],
-      "HOD": ["sincos"],
-      "rolling_window": {
-        "active": true,
-        "type": "binned",
-        "minutes": 15
-      },
-      "data_time_interval_mins": 1,
-      "arch_version": 5,
-      "window": 24,
-      "sequence_freq_min": 15,
-      "arch_type": "RNN",
-      "EC_future_gap_min": 0,
-      "data_split": "80:10:10",
-      "exp_dir": "/io/exp_dir",
-      "train_val_split": "Random",
-      "S2S_stagger": {
-        "initial_num": 72,
-        "decay": 0,
-        "secondary_num": 0
-     }
-    }
-  
-    // WINDOW: Extracted from configuration for now; the logic here needs to be verified
-    window: config->sequence_freq_min.as(1min) *  (config->window + 1) // In minutes
-    
-    // INPUTS:
-    // Each ID has a 'dis' tag manually defined to match the original trained model from the
-    // intelligentcampus-pred-analytics repo. We should get the two synthetic data set names
-    // and ids aligned so we don't have to use this hack. (Eventually this should load from
-    // a data set configuration file or similar.) Note that 'dis' tag affects CSV export, but
-    // does not affect data marshalling of grids SkySpark -> Python. (Column names "v0", "v1",
-    // etc. are used instead, regardless of 'dis' tag.)
-    inputs: [
-      {id:@p:wattile_test:r:278f8943-6a199bd7, dis:"SRRL BMS Dew Point Temperature"},
-      {id:@p:wattile_test:r:278f79c0-03da5abc, dis:"SRRL BMS Diffuse Horizontal Irradiance"},
-      {id:@p:wattile_test:r:278f79c0-4fe536b4, dis:"SRRL BMS Direct Normal Irradiance"},
-      {id:@p:wattile_test:r:278f79c0-8a8f26b0, dis:"SRRL BMS Dry Bulb Temperature"},
-      {id:@p:wattile_test:r:278f79c0-8d722bdb, dis:"SRRL BMS Global Horizontal Irradiance"},
-      {id:@p:wattile_test:r:278f79c0-e7db4305, dis:"SRRL BMS Relative Humidity"},
-      {id:@p:wattile_test:r:278f79c0-c1f48e5c, dis:"SRRL BMS Wind Speed at 19'"}
-    ]
-  
-    // TIMESTAMP: What is the timestamp around which we want to call the prediction
-    ts: dateTime(2021-12-08, time(08,00), "Denver") // December 8, 2021 08:00 MST
-  
-    /* Run prep_for_rnn in Python */
-  
-    // Uses the task framework to send actions and retrieve results
-  
-    // Model setup: see wattilePythonTask() and wattileModelSetup()
-    wattileTask.taskSend({
-      action:   "setup",
-      config:   config
-    })
-  
-    // Read and prepare data: see wattilePythonTask(), wattileReadHis(), and wattilePythonPredict()
-    future: wattileTask.taskSend({
-      action:   "predict",
-      inputs:   inputs,
-      ts:       ts,
-      window:   window
-    })
-  
-    // Get result
-    future.futureGet()
-  
   end
