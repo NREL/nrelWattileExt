@@ -151,12 +151,34 @@ and one power point named "Synthetic Site Electricity Main Total Power".
    See the top-level **README** for instructions on exporting modified versions
    of the functions to include in the extension codebase.
 
+3. `testEnvironmentSetup()` copies a model from the Wattile Docker image to the
+   common mount point `/io/wattile/models/test_model/` so that it is visible by
+   SkySpark. The default Wattile Docker image name is `"wattile"`; users can
+   override this with the `image` option, as in:
+   
+   ```
+   testEnvironmentSetup({image:"different_wattile"})
+   ```
+   
+   Setting `image` at setup will also update the name of the image referenced in
+   the Wattile Python interaction task record.
+
 3. If you need to replace any existing files (`setup.trio`,
    `example_funcs.trio`, `folio_records.trio`, etc.) after initially uploading
    them via the SkySpark *Tools* app, you must first delete the existing
    versions. Otherwise, SkySpark will make a new copy with an integer suffix
    rather than overwriting the existing version.)
-   
+
+### Summary of testEnvironmentSetup() options
+
+Options for `testEnvironmentSetup()`, passed as a dict:
+
+- `developer`: Also import **nrelWattileExt** functions for developing
+- `resetProject`: Delete existing records before running setup
+- `image`: Specify name of Python Docker image to use (default = `"wattile"`)
+
+See above for usage guidance.
+
 Getting Started
 ---------------
 
