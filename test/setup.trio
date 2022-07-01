@@ -29,7 +29,7 @@ doc:
   2. Empty the trash
   3. Overwrite any existing 'example*' or 'test*' functions found in 'example_funcs.trio'
   4. Overwrite any existing extension functions (if 'developer' option is set)
-    
+  
   **Warning:** there is no recovery of any existing records after using the 'resetProject' option. Use with care!
 func
 src:
@@ -72,20 +72,20 @@ src:
       .toRecList
       .map(funcDiff)
       .commit
-    
+  
     // Import developer functions (optional)
     if (opts.has("developer")) do
       // File list
       files: ioDir(`io/`)
-      
+  
       // Find available developer functions
       files = files
         .findAll() f => ["pythonFuncs.trio", "supportFuncs.trio", "taskFuncs.trio"].contains(f->name)
-      
+  
       // Commit each
       files.each() f => ioReadTrio(f->uri).toRecList.map(funcDiff).commit
     end
-    
+  
     // Read point history
     data: ioReadZinc(`io/folio_his.zinc`)
   
@@ -105,4 +105,28 @@ src:
       // Write history
       hisWrite(pointData, point)
     end
+    
+    // User-specified image
+    if (opts.has("image")) do
+      image: opts->image
+      task: read(task and dis=="Wattile Python Task")
+      diff(
+        task,
+        {taskExpr:task->taskExpr.replace("\"wattile\"", "\"" + opts->image + "\"")}
+      ).commit
+    
+    // Default image
+    else do
+      image: "wattile"
+    end
+    
+    // Copy the test model into io/wattile/models/
+    // Note: First removes any existing test_model directory!
+    ioDelete(`io/wattile/models/test_model/`)
+    py({image:image})
+      .pyExec("import shutil")
+      .pyEval("shutil.copytree('/trained_models/v4_exp_dir/', '/io/wattile/models/test_model/')")
+    
+    // Temporary: Deploy local copy of data_config.json (until one comes with the model)
+    ioCopy(`io/data_config.json`, `io/wattile/models/test_model/data_config.json`, {overwrite})
   end
