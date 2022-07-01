@@ -160,12 +160,7 @@ weather
 weatherStationRef:@278f790b-44057bc3 "Synthetic Weather Station"
 wind
 ---
-id:@29e7afcb-0fcefdd7 "Persistent Python Container Task"
-dis:Persistent Python Container Task
-task
-taskExpr:examplePythonTask
----
-id:@2a06ba36-9cf5ad53 "Predictive Analytics Python Task"
-dis:Predictive Analytics Python Task
+id:@2a06ba36-9cf5ad53 "Wattile Python Task"
+dis:Wattile Python Task
 task
 taskExpr:"(msg) => wattilePythonTask(msg, \"wattile\")"
