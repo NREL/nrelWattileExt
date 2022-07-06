@@ -1,13 +1,14 @@
-nrelPredictiveAnalyticsExt: Interface extension for predictive analytics tools
-==============================================================================
+nrelWattileExt: Interface extension for Wattile Python package
+==============================================================
 
-**nrelPredictiveAnalyticsExt** (name subject to change) is a [SkySpark]
-extension for interfacing with the [Python]-based predictive analytics
-algorithms developed by NREL's Intelligent Campus team. At this time, the
-extension is for NREL internal use only. This package is developed and
-maintained by the [National Renewable Energy Laboratory].
+**nrelWattileExt** is a [SkySpark] extension for interfacing [Wattile], a
+[Python] package for probabilistic prediction of building energy use developed
+by NREL's Intelligent Campus team. At this time, the extension is for NREL
+internal use only. This package is developed and maintained by the
+[National Renewable Energy Laboratory].
 
 [SkySpark]: http://skyfoundry.com/skyspark/ "SkySpark"
+[Wattile]: https://github.com/NREL/wattile/ "Wattile"
 [Python]: https://www.python.org/ "Python Programming Language"
 [National Renewable Energy Laboratory]: https://www.nrel.gov "NREL Website"
 
@@ -18,9 +19,9 @@ Build instructions:
 
 1. Create a local clone of this repository on a computer with a working copy of SkySpark.
 2. From the command line, change directory to the SkySpark root directory.
-3. Execute `bin/fan /path/to/nrelPredictiveAnalyticsExt/build.fan`.
+3. Execute `bin/fan /path/to/nrelWattileExt/build.fan`.
    - On Linux, you may need to `chmod +x bin/fan` first.
-   - Output pod will be `lib/fan/nrelPredictiveAnalyticsExt.pod` (relative to
+   - Output pod will be `lib/fan/nrelWattileExt.pod` (relative to
      SkySpark root).
 4. Execute `bin/fan docgen` to regenerate documentation.
 
@@ -34,9 +35,9 @@ Installation
 ------------
 
 Select a set of installation instructions below that corresponds to how you
-obtained the **nrelPredictiveAnalyticsExt** extension. Following installation,
-you must enable the *nrelPredictiveAnalytics* extension in the *Exts* tab of the
-SkySpark *Settings* app within each project that needs access to the functions.
+obtained the **nrelWattileExt** extension. Following installation, you must
+enable the *nrelWattile* extension in the *Exts* tab of the SkySpark *Settings*
+app within each project that needs access to the functions.
 
 ### From Source ###
 
@@ -56,28 +57,26 @@ start (or restart) SkySpark.
 Prerequisites
 -------------
 
-To use **nrelPredictiveAnalyticsExt**, you must have:
+To use **nrelWattileExt**, you must have:
 
 1. Docker installed and working with SkySpark
-2. A local Docker image built from the NREL [intelligentcampus-pred-analytics]
-   repo registered with a tag you can access from SkySpark (e.g. "intelcamp")
+2. A local Docker image built from the [Wattile] repo registered with a tag you
+   can access from SkySpark (e.g. "wattile")
 
 **TO DO:** Put more instructions here.
-
-[intelligentcampus-pred-analytics]: https://github.com/NREL/intelligentcampus-pred-analytics/
 
 Documentation
 -------------
 
 Function documentation is available in the SkySpark *Doc* app under
-*nrelPredictiveAnalytics* or within the *Docs* interface in the *Code* app.
+*nrelWattile* or within the *Docs* interface in the *Code* app.
 
 Develop
 -------
 
-**nrelPredictiveAnalyticsExt** is a SkySpark resource extension, that is, it
-provides the set of [Axon] functions as a resource for SkySpark users. The
-functions are stored in the [Trio]-formatted files within `lib/`:
+**nrelWattileExt** is a SkySpark resource extension, that is, it provides the
+set of [Axon] functions as a resource for SkySpark users. The functions are
+stored in the [Trio]-formatted files within `lib/`:
 
 - `taskFuncs.trio`: Functions used to define Python interaction task(s)
 - `pythonFuncs.trio`: Functions for interacting with Python (internal use)
@@ -101,10 +100,10 @@ Extension App Note].
 1. Launch SkySpark and log in with an admin or superuser account.
 
 2. Create a project to use for development. (These instructions assume your
-   project is named "pred_test".)
+   project is named "wattile_test".)
 
 3. Within the *Tools* app, *Files* tab, upload some or all of following files
-   from `lib/` directory to `proj > pred_test > io`, according to your
+   from `lib/` directory to `proj > wattile_test > io`, according to your
    development needs:
    
    - `taskFuncs.trio`
@@ -114,14 +113,14 @@ Extension App Note].
 4. (Optional) Pick a marker (or "flag") tag to attach to each imported function
    to facilitate easy querying for later export. 
    
-   - These instructions assume your flag tag is `predAnalyticsDev`.
+   - These instructions assume your flag tag is `wattileDev`.
    - For organization, you may want to use a different flag tag for each file.
 
 5. In the *Tools* app, *Shell* tab, execute the following for each file `x.trio`
    that contains functions you need to import:
    
    ```
-   ioReadTrio(`io/x.trio`).map(rec => diff(null, rec.merge({predAnalyticsDev}), {add})).commit
+   ioReadTrio(`io/x.trio`).map(rec => diff(null, rec.merge({wattileDev}), {add})).commit
    ```
    
    Alternatively, if you are not using a flag tag:
@@ -140,7 +139,7 @@ Extension App Note].
    or
    
    ```
-   readAll(func and predAnalyticsDev)
+   readAll(func and wattileDev)
    ```
 
 Note that if any of the imported functions has a name conflict with an existing
@@ -153,11 +152,11 @@ duplicate function record(s).
 *Note:* All paths below are relative to repository root directory.
 
 1. In SkySpark, construct a query that returns the function(s) you wish to
-   export. If you used a flag tag during import (e.g. `predAnalyticsDev`), your
+   export. If you used a flag tag during import (e.g. `wattileDev`), your
    query will probably look something like this:
    
    ```
-   func and predAnalyticsDev
+   func and wattileDev
    ```
    
    (If you did not use a flag tag, you will need a different query, such as
@@ -170,7 +169,7 @@ duplicate function record(s).
    functions and export them to a Trio file.
 
   ```
-  readAll(func and predAnalyticsDev).removeCols(["id","predAnalyticsDev","mod"]).ioWriteTrio(`io/x.trio`)
+  readAll(func and wattileDev).removeCols(["id","wattileDev","mod"]).ioWriteTrio(`io/x.trio`)
   ```
 
   - The query within `readAll()` should match what you developed in Step 1 above
@@ -191,7 +190,7 @@ Alternative Workflow:
    functions and prepare them for export:
    
   ```
-  readAll(func and predAnalyticsDev).removeCols(["id","predAnalyticsDev","mod"])
+  readAll(func and wattileDev).removeCols(["id","wattileDev","mod"])
   ```
 
   - The query within `readAll()` should match what you developed in Step 1 above
@@ -209,7 +208,7 @@ Alternative Workflow:
 
 The `test/` subdirectory contains resources and instructions for setting up a
 SkySpark test environment for developing and testing functions and workflows
-related to **nrelPredictiveAnalyticsExt**.
+related to **nrelWattileExt**.
 
 License
 -------

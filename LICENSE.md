@@ -1,1 +1,1 @@
-**nrelPredictiveAnalyticsExt** is currently NREL internal use only; this is a placeholder
+**nrelWattileExt** is currently NREL internal use only; this is a placeholder

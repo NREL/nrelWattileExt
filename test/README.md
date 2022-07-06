@@ -40,15 +40,14 @@ Setup Instructions
 
 1. SkySpark installation (version 3.1.3+) with superuser permissions (must be
    able to install packages and create new projects)
-2. The **nrelPredictiveAnalyticsExt** extension built and installed in SkySpark
-   (unless you manually import the relevant functions or use the 'developer'
-   option during setup; see below).
+2. The **nrelWattileExt** extension built and installed in SkySpark (unless you
+   manually import the relevant functions or use the 'developer' option during
+   setup; see below).
 3. Docker installed and running (not needed for setup; needed for running the
    example code)
-4. A local Docker image built from the [intelligentcampus-pred-analytics]
-   repo and tagged as "intelcamp".
+4. A local Docker image built using the [Wattile] repo and tagged as "wattile"
 
-[intelligentcampus-pred-analytics]: https://github.com/NREL/intelligentcampus-pred-analytics/
+[Wattile]: https://github.com/NREL/wattile/
 
 ### Setup Instructions ###
 
@@ -57,24 +56,24 @@ Setup Instructions
 2. From the host interface, create a new empty project with the following
    metadata:
    
-   1. **name:** "pred_test" (required)
-   2. **dis:** "Predictive Analytics Test" (optional)
-   3. **doc:** "SkySpark test environment for integrating predictive analytics time series models using Python and Docker" (optional)
+   1. **name:** "wattile_test" (required)
+   2. **dis:** "Wattile Test" (optional)
+   3. **doc:** "SkySpark test environment for Wattile interaction using Python and Docker" (optional)
 
-   Note: if the default project name "pred_test" is altered, remember to use the
-   new name where applicable in each of the following steps.
+   Note: if the default project name "wattile_test" is altered, remember to use
+   the new name where applicable in each of the following steps.
 
-3. Navigate to the new *Predictive Analytics Test* project you just created
+3. Navigate to the new *Wattile Test* project you just created
 
 4. Within the *Settings* app, *Exts* tab, enable the `docker`, `py`, and
    `task` exts.
 
-5. Unless you plan to import the required **nrelPredictiveAnalyticsExt**
-   functions separately (see *Notes*), within the *Settings* app, *Exts* tab,
-   also enable `nrelPredictiveAnalytics`. 
+5. Unless you plan to import the required **nrelWattileExt** functions
+   separately (see *Notes*), within the *Settings* app, *Exts* tab, also enable
+   `nrelWattile`. 
 
 6. Within the *Tools* app, *Files* tab, upload the following files from this
-   directory to `proj > pred_test > io`:
+   directory to `proj > wattile_test > io`:
    
    1. `setup.trio`
    2. `example_funcs.trio`
@@ -134,12 +133,12 @@ and one power point named "Synthetic Site Electricity Main Total Power".
    `equip`, `point`, and `task` records in the current project and will
    overwrite existing example functions. Use with caution!
 
-2. Executing the example code you just imported requires that you either
-   have **nrelPredictiveAnalyticsExt** installed and enabled, or that you have
-   manually imported the extension's functions (located in the files in `lib/`)
-   into the SkySpark database. (Manually importing the functions is best for
-   development; see the top-level **README**.) The `testEnvironmentSetup()`
-   function can facilitate importing the files from `lib/`:
+2. Executing the example code you just imported requires that you either have
+   **nrelWattileExt** built, installed, and enabled; or that you have manually
+   imported the extension's functions (located in the files in `lib/`) into the
+   SkySpark database. (Manually importing the functions is best for development;
+   see the top-level **README**.) The `testEnvironmentSetup()` function can
+   facilitate importing the files from `lib/`:
    
    1. Upload the TRIO files from `lib/` into SkySpark during Step 6 above.
    
@@ -164,7 +163,7 @@ Getting Started
 After setup, to get started, first start Docker (if it isn't alreay running).
 Then, inspect and run the following functions:
 
-1. `task(@p:pred_test:r:29e7afcb-0fcefdd7).examplePythonInteraction`
-2. `task(@p:pred_test:r:2a06ba36-9cf5ad53).testPrepDataV4`
+1. `task(@p:wattile_test:r:29e7afcb-0fcefdd7).examplePythonInteraction`
+2. `task(@p:wattile_test:r:2a06ba36-9cf5ad53).testPrepDataV4`
 
-You can also try `testPrepDataV4`.
+You can also try `testPrepDataV5`.
