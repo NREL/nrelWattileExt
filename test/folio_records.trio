@@ -33,10 +33,14 @@ net
 point
 power
 prediction
+predictionOf:@294fd256-a17bb5c7 "Synthetic Site Electricity Main Total Power"
 siteRef:@294fcf97-cf16a467 "Synthetic Site"
 total
 tz:Denver
 unit:kW
+wattileHis:v2
+wattileModelRef:@2a77042f-8116cf41 "Wattile Example Model"
+wattilePoint
 ---
 id:@294fcfbe-96ce7f29 "Synthetic Site Electricity Main"
 disMacro:"\$siteRef \$navName"
