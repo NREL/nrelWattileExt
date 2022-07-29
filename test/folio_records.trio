@@ -160,9 +160,8 @@ weather
 weatherStationRef:@278f790b-44057bc3 "Synthetic Weather Station"
 wind
 ---
-id:@p:wattile_test:r:2a77042f-8116cf41 "Wattile Example Model"
+id:@2a77042f-8116cf41 "Wattile Example Model"
 dis:Wattile Example Model
-mod:2022-07-29T20:49:28.021Z
 uri:`io/wattile/models/test_model/`
 wattileModel
 wattileTarget:@294fd256-a17bb5c7
