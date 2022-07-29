@@ -163,4 +163,5 @@ wind
 id:@2a06ba36-9cf5ad53 "Wattile Python Task"
 dis:Wattile Python Task
 task
+wattileTask
 taskExpr:"(msg) => wattilePythonTask(msg, \"wattile\")"
