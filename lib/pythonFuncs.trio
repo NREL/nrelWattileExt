@@ -126,12 +126,26 @@ src:
       .pyExec("my_data_frame = my_data_frame.rename(columns=column_specification)")
   
     // Prep data and run prediction
-    output: session
+    result: session
       .pyExec("train_df, val_df = prep_for_rnn(configs, my_data_frame)")
       .pyEval("run_model(configs, train_df, val_df)")
     
+    // Placeholder: Mock up output by adding 'ts' column and two data rows
+    // In the future this will be handled on the Python side
+    // This is just for workflow testing!
+    horizon: 0
+    calcTimestamp: () => do
+      nextTs: ts + horizon*(dataConfig->window->interval)
+      horizon = horizon + 1
+      return nextTs
+    end
+    output: result
+      .toGrid
+      .addRows(result.toGrid)
+      .addCol("ts", row => calcTimestamp())
+    
     // Return prediction output
-    return output.toGrid
+    return output
     
     // NOTE: pyEval() closses the Python session unless the session is running in a task
   end
