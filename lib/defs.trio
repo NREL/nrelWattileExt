@@ -1,0 +1,47 @@
+---
+def: ^prediction
+is: ^pointFunction
+doc:
+  Point is a prediction or forecast of another point.
+---
+def: ^predictionOf
+is: ^ref
+of: ^point
+tagOn: ^point
+doc:
+  Reference to a point for which this point provides a prediction.
+---
+def: ^wattileModel
+is: ^entity
+doc:
+  Proxy record for a Wattile model.
+---
+def: ^wattileTarget
+is: ^ref
+of: ^point
+tagOn: ^wattileModel
+doc:
+  Reference to the target point for a Wattile model, that is, the point for
+  which the Wattile model provides a prediction.
+---
+def: ^wattileModelRef
+is: ^ref
+of: ^wattileModel
+tagOn: ^wattilePoint
+doc:
+  Reference to an associated Wattile model.
+---
+def: ^wattilePoint
+is: ^point
+doc:
+  Point associated with a Wattile model; receives Wattile prediction data.
+---
+def: ^wattileHis
+is: ^str
+doc:
+  Used on a `wattilePoint` to define the column of the Wattile prediction
+  output used to sync history data.
+---
+
+
+
