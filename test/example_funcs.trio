@@ -1,16 +1,16 @@
 name:testPrediction
 func
 src:
-  // Test harnass to run a prediction against the built-in V4 test model
-  // Note: V4 model is copied to io/wattile/models/test_model/ as part of testEnvironmentSetup()
+  // Test harnass to run a prediction against a built-in Wattile test model
+  // Note: 'wattileModel' record is loaded as part of testEnvironmentSetup()
   
   // 'wattileTask' argument is the task record or record ID, e.g. from one of...
   //   task(@p:wattile_test:r:2a06ba36-9cf5ad53)
-  //   read(task and dis=="Wattile Python Task")
+  //   read(task and wattileTask)
   
   (wattileTask) => do
     // Model directory
-    uri: `io/wattile/models/test_model/`
+    wattileModel: read(wattileModel) // Should only be one in test environment
   
     // Timestamp at which we want to call the prediction
     ts: dateTime(2021-12-08, time(08,00), "Denver") // December 8, 2021 08:00 MST
@@ -21,9 +21,9 @@ src:
     // See wattilePythonTask() and wattileModelSetup()
     wattileTask.taskSend({
       action: "setup",
-      uri:    uri
+      model:  wattileModel
     })
-  
+    
     // Run prediction for model setup created in the previous step
     // See wattilePythonTask() and wattilePythonPredict()
     future: wattileTask.taskSend({

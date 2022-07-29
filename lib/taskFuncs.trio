@@ -57,7 +57,7 @@ src:
     // Model setup
     else if (action == "setup") do
       // Load model configuration into task and into Python session: see wattilePythonModelSetup()
-      pySession.wattilePythonModelSetup(msg->uri)
+      pySession.wattilePythonModelSetup(msg->model)
   
       // Return
       return "ok"

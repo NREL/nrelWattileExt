@@ -16,32 +16,35 @@ name:wattilePythonModelSetup
 func
 nodoc
 src:
-  // Python commands for model setup
-  (session, uri) => do
+  (session, model) => do
+    // Get local directory uri from model record
+    uri: (model.toRec)["uri"]
+    
     // Verify uri is a directory, exists, and is not empty
+    if (uri.isNull) throw "Model must have a valid 'uri' tag"
     if (not uriIsDir(uri)) throw "Uri `" + uri.toStr + "` is not a directory"
     if (ioDir(uri).isEmpty) throw "Directory `" + uri.toStr + "` is empty or does not exist"
-    
+  
     // Verify data_config.json exists
     if (ioDir(uri).find(f => f->name=="data_config.json") == null) do
       throw "Cannot find 'data_config.json' in specified model directory."
     end
-    
+  
     // Read model input data configuration
     dataConfig: ioReadJson(uri + "data_config.json", {v3}) // TO DO: Update to v4 encoding
-    
+  
     // Extract list of required predictors (and verify that each exists)
     predictors: dataConfig->predictors.map() p => do
       // Get id
       id: p.toRecId
-      
+  
       // Verify corresponding record exists
       rec: readById(id, false)
       if (rec == null) throw "Predictor @" + id.toStr + " not found."
-      
+  
       // Synthesize 'dis' tag
       dis: if (p.has("dis")) p->dis else p->column
-      
+  
       // Return
       {
         id: rec.toRecId,     // Required
@@ -49,13 +52,13 @@ src:
         pythonCol: p->column // Required
       }
     end
-    
+  
     // Cache model input data configuration and list of predictors
     taskLocalSet("dataConfig", dataConfig)
     taskLocalSet("predictors", predictors)
-    
+  
     // TEMPORARY //
-    
+  
     // All of the following is temporary until reading training config for prediction
     // is handled internally by Wattile; see https://github.com/NREL/Wattile/issues/108
   
@@ -66,17 +69,17 @@ src:
   
     // Load model training configuration
     modelConfig: ioReadJson(uri + "configs.json")
-    
+  
     // Set use case to "prediction"
     modelConfig = modelConfig.set("use_case", "prediction")
-    
+  
     // Set working directory to uri
     pythonModelDir: "/" + concat(ioInfo(uri)->uri.uriPath[2..-1], "/") + "/" // Indexing here trims path to start at `io`
     modelConfig = modelConfig.set("exp_dir", pythonModelDir)
-    
+  
     // Cache model training configuration
     taskLocalSet("modelConfig", modelConfig)
-    
+  
     // Load model configuration into Python
     session.pyDefine("configs", modelConfig)
   end
@@ -90,15 +93,15 @@ src:
     // Retrieve model configuration and predictors from task variables
     dataConfig: taskLocalGet("dataConfig")
     predictors: taskLocalGet("predictors")
-    
+  
     // TO DO: Need to align ts to native interval of model?
-    
+  
     // Calculate required span for history read
     span: (ts - dataConfig->window->duration)..(ts)
   
     // Read and prepare data: see wattileReadHis()
     data: wattileReadHis(predictors, span)
-    
+  
     // Develop column name specification for SkySpark -> Python conversion
     getSkySparkColName: (column) => name(column)
     getPythonColName: (column) => do
@@ -109,7 +112,7 @@ src:
     columnSpec: data
       .gridColsToDict(getSkySparkColName, getPythonColName)
       .findAll(v => v != null)
-    
+  
     // Load data into Python
     session
       .pyDefine("my_grid", data)
@@ -123,9 +126,12 @@ src:
       .pyExec("my_data_frame = my_data_frame.rename(columns=column_specification)")
   
     // Prep data and run prediction
-    session
+    output: session
       .pyExec("train_df, val_df = prep_for_rnn(configs, my_data_frame)")
-      .pyEval("run_model(configs, train_df, val_df)") // prep data
-  
+      .pyEval("run_model(configs, train_df, val_df)")
+    
+    // Return prediction output
+    return output.toGrid
+    
     // NOTE: pyEval() closses the Python session unless the session is running in a task
   end
