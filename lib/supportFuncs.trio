@@ -1,3 +1,104 @@
+name:wattileImportModels
+doc:
+  Imports Wattile models located in **dirs** and returns a list of `wattileModel` records ready to commit. **dirs** may be a single uri, a list of uris, or a grid with a 'uri' column.
+  
+  Each record includes tags:
+  
+  - 'wattileModel'
+  - 'wattileTarget': Ref to model's target point, based on 'data_config.json'
+  - 'uri': Path to the model directory
+  
+  The **checked** flag governs error handling:
+  
+  - If a directory does not exist or is not a valid Wattile model, throw an error if **checked** is 'true'; otherwise skip the directory
+  - If the model target point cannot be found in the local project or anywhere in the cluster (via Xquery), throw an error **checked** is 'true'; otherwise set 'wattileTarget' to null
+  
+  Regardless of **checked**, if the Wattile model's configuration does not specify a target, 'wattileTarget' is set to null.
+func
+src:
+  (dirs, checked:true) => do
+    // If directories is a file grid, get URI column
+    if (dirs.isGrid) dirs = dirs.colToList("uri")
+    
+    // Map dirs to wattileModel records
+    models: dirs.toList.map() dir => do
+      // Check directory uri
+      if (not dir.isUri) dir = dir.parseUri(checked)
+      
+      // Check that the directory exists
+      try do
+        if (dir.isNull) throw "Model directory is null"
+        if (ioDir(dir).isEmpty) throw "Model directory `" + dir.toStr + "` is empty or does not exist"
+      catch (ex) do
+        if (checked) throw (ex)
+        return null // Invalid model
+      end
+      
+      // Read data_config.json
+      try do
+        // Verify data_config.json exists
+        if (ioDir(dir).find(f => f->name=="data_config.json") == null) do
+          throw "Missing 'data_config.json'"
+        end
+        
+        // Read
+        dataConfig: ioReadJson(dir + "data_config.json", {v3}) // TO DO: Update to v4 encoding
+      catch (ex) do
+        if (checked) throw (ex)
+        return null // Invalid model
+      end
+      
+      // Model dict
+      model: {wattileModel, uri:dir}
+      
+      // Get model target
+      try do
+        // Get target record ID
+        if (dataConfig.has("target")) do
+          target: dataConfig->target.toRecId
+        else do
+          target: null
+        end
+        
+        // Verify target exists somewhere
+        if (target != null) do
+          // Try local first
+          targetSearch: readById(target, false)
+          
+          // Try XQuery next
+          if (targetSearch == null) do
+            targetSearch: xq().xqReadByIdsList(target.toList).xqExecute
+            
+            // Point not found
+            if (targetSearch.isEmpty) do
+              throw "Target point " + target.toStr + " cannot be found."
+            end
+          end
+          
+          // If we made it here, search was successful
+          
+          // Extract fully referenced target
+          if (targetSearch.isList) targetSearch = targetSearch.first
+          target = targetSearch.toRecId
+        end
+        
+        // Assign to model
+        model = model.set("wattileTarget", target)
+        
+      catch (ex) do
+        if (checked) throw (ex)
+      end
+      
+      // TO DO: Also import model name?
+      
+      // Return model dict
+      model
+    end
+    
+    // Return models, minus anything skipped
+    return models.findAll(m => m != null)
+  end
+---
 name:wattileReadHis
 doc:
   Predictive analytics helper function; reads history for **recs** and converts into a history grid compatible with a prediction call to Python via 'wattilePythonTask()'
