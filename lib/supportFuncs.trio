@@ -1,6 +1,6 @@
 name:wattileReadHis
 doc:
-  Predictive analytics helper function; reads history for **recs** and converts into a history grid compatible with a prediction call to Python via 'taskPredAnalyticsDocker()'
+  Predictive analytics helper function; reads history for **recs** and converts into a history grid compatible with a prediction call to Python via 'wattilePythonTask()'
   
   **TO DO:** Refine documentation. Should this be 'nodoc'?
 func
