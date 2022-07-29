@@ -1,4 +1,3 @@
----
 def: ^prediction
 is: ^pointFunction
 doc:
@@ -13,8 +12,15 @@ doc:
 ---
 def: ^wattileModel
 is: ^entity
+icon: "python"
 doc:
   Proxy record for a Wattile model.
+---
+def: ^wattileTask
+is: ^task
+doc:
+  A task that interfaces with a Docker image containing the Wattile Python
+  package.
 ---
 def: ^wattileTarget
 is: ^ref
@@ -41,7 +47,3 @@ is: ^str
 doc:
   Used on a `wattilePoint` to define the column of the Wattile prediction
   output used to sync history data.
----
-
-
-
