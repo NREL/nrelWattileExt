@@ -26,6 +26,8 @@ unit:kW
 id:@294fd25e-1a126cc0 "Synthetic Site Electricity Main Total Power (Prediction)"
 disMacro:"\$equipRef \$navName"
 equipRef:@294fcfbe-96ce7f29 "Synthetic Site Electricity Main"
+his
+hisInterval:15min
 hisRollupFunc:mean
 kind:Number
 navName:"Total Power (Prediction)"
