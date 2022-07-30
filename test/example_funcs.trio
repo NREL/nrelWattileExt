@@ -1,17 +1,16 @@
 name:testPrediction
 func
 src:
-  // Test harnass to run a prediction against a built-in Wattile test model
-  // Note: 'wattileModel' record is loaded as part of testEnvironmentSetup()
+  // Test harnass to run a prediction against a Wattile test model
+  // Recommended to run with arguments...
+  // 
+  //   wattileTask: read(task and wattileTask)
+  //   wattileModel: read(wattileModel)
+  //
+  // Unless you have modified your test environment, these will
+  // point to unique recs loaded as part of testEnvironmentSetup()
   
-  // 'wattileTask' argument is the task record or record ID, e.g. from one of...
-  //   task(@p:wattile_test:r:2a06ba36-9cf5ad53)
-  //   read(task and wattileTask)
-  
-  (wattileTask) => do
-    // Model directory
-    wattileModel: read(wattileModel) // Should only be one in test environment
-  
+  (wattileTask, wattileModel) => do
     // Timestamp at which we want to call the prediction
     ts: dateTime(2021-12-08, time(08,00), "Denver") // December 8, 2021 08:00 MST
   
@@ -33,4 +32,30 @@ src:
   
     // Get result
     future.futureGet()
+  end
+---
+name:testPredictionSync
+func
+src:
+  // Test the prediction point sync workflow of wattileSyncPredictions()
+  // Recommended to run with arguments...
+  // 
+  //   wattileTask: read(task and wattileTask)
+  //   wattileModel: read(wattileModel)
+  //
+  // Unless you have modified your test environment, these will
+  // point to unique recs loaded as part of testEnvironmentSetup()
+  
+  (wattileTask, wattileModel) => do
+    // Timestamp at which we want to sync the prediction
+    ts: dateTime(2021-12-09, time(12,00), "Denver") // December 9, 2021 12:00 PM MST
+  
+    // Sync predictions from the model
+    points: wattileSyncPredictions(wattileTask, wattileModel, ts, {overwrite})
+    
+    // Note: we use the 'overwrite' option here to overwrite any existing history,
+    // allowing you to see changes if you modify the model or its associated points
+    
+    // Read data and return
+    points.hisRead(ts.date)
   end

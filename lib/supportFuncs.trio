@@ -137,3 +137,93 @@ src:
     // Combine data, clip to window, and return
     hisJoin(data).hisClip
   end
+---
+name:wattileSyncPredictions
+doc:
+  Using the specified Wattile Python **task**, sync prediction data for all points associated with Wattile **model** for timestamp **ts**. Each 'wattilePoint' associated with **model** (via `wattileModelRef`) receives new history per its 'wattileHis' tag.
+  
+  Options
+  -------
+  
+  By default, new prediction history is written persistently and any predictions with timestamps prior to each point's 'hisEnd' are dropped. This behavior can be modified by the following options, passed via **opts**:
+  
+  - 'overwrite': Marker; if present then existing history may be overwritten (ignores 'hisEnd')
+  - 'forecastSplit': Number; if present splits the predictions as follows:
+    - Writes predictions with timestamps up to and including **ts** + 'forecastSplit' persistently
+    - Writes predictions with timestamps after **ts** + 'forecastSplit' transiently (sets `hisWrite` 'forecast' flag)
+  - 'forecastOnly': Marker; writes all predictions transiently (sets `hisWrite` 'forecast' flag)
+  
+  
+  To avoid warning spam in the logs, the 'overwrite' option also sets the `hisWrite` 'noWarn' flag. 'forecast' and 'forecastSplit' are mutually exclusive.
+func
+src:
+  (task, model, ts, opts:{}) => do
+    // Check options
+    if (opts.has("forecastOnly") and opts.has("forecastSplit")) do
+      throw "The 'forecastOnly' and 'forecastSplit' options are mutually exclusive"
+    end
+    
+    // Model record
+    model = model.toRec
+    
+    // Read points
+    points: readAll(wattilePoint and wattileModelRef==model->id).toRecList
+    
+    // Model setup
+    task.taskSend({
+      action: "setup",
+      model:  model
+    })
+    
+    // Run prediction
+    future: task.taskSend({
+      action: "predict",
+      ts:     ts
+    })
+  
+    // Retrieve prediction data
+    data: future.futureGet()
+    
+    // Filter function for new history
+    newHistoryOnly: (v, t, h) => do
+      if (h.has("hisEnd")) t > h->hisEnd else true
+    end
+    
+    // Write to points
+    points.each() p => do
+      // Filter predictions
+      preds: data
+        .keepCols(["ts",p->wattileHis])
+        .reorderCols(["ts",p->wattileHis])
+        .sort("ts")
+        
+      // Overwrite or drop old history?
+      if (opts.has("overwrite")) do
+        hisWriteOpts: {noWarn}
+      else do
+        hisWriteOpts: {}
+        preds = preds.hisFindAll(newHistoryOnly(_,_,p))
+      end
+        
+      // Split past vs. future (forecast) predictions
+      if (opts.has("forecastOnly")) do
+        pastPreds: []
+        forePreds: preds
+      else if (opts.has("forecastSplit")) do
+        splitTs: ts + opts->forecastSplit
+        pastPreds: preds.hisFindAll((v, t) => t <= splitTs)
+        forePreds: preds.hisFindAll((v, t) => t > splitTs)
+      else do
+        pastPreds: preds
+        forePreds: []
+      end
+      
+      // Write history
+      if (not pastPreds.isEmpty) hisWrite(pastPreds, p, hisWriteOpts)
+      if (not forePreds.isEmpty) hisWrite(forePreds, p, {forecast})
+    end
+     
+    // History sync then return updated point records
+    hisSync()
+    points.toRecIdList.readByIds
+  end
