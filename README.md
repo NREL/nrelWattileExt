@@ -85,12 +85,16 @@ stored in the [Trio]-formatted files within `lib/`:
 The simplest development workflow is to import these functions into SkySpark,
 make changes *Code* app (and test via *Tools*), export back to Trio format, and
 update the corresponding file(s) in the repo. Workflows for importing functions
-to SkySpark and exporting functions from SkySpark are described below. For more
-guidance on developing resource extensions, see the [SkyFoundry Resource
-Extension App Note].
+to SkySpark and exporting functions from SkySpark are described below. These
+istructions assume you have the [nrelUtility] extension installed (contains
+`importFunctions()` and `exportFunctions()`).
+
+For more guidance on developing resource extensions, see the [SkyFoundry
+Resource Extension App Note].
 
 [Axon]: https://haxall.io/doc/appendix/axon "Axon documentation"
 [Trio]: https://project-haystack.org/doc/docHaystack/Trio "Trio file format"
+[nrelUtility]: https://github.com/NREL/nrelUtilityExt/ "nrelUtility Extension"
 [SkyFoundry Resource Extension App Note]: https://skyfoundry.com/doc/docAppNotes/CreateResourceExtension
 
 ### Importing to SkySpark ###
@@ -99,10 +103,16 @@ Extension App Note].
 
 1. Launch SkySpark and log in with an admin or superuser account.
 
-2. Create a project to use for development. (These instructions assume your
-   project is named "wattile_test".)
+2. Create a project to use for development and make it the active project.
+   (These instructions assume your project is named "wattile_test".)
 
-3. Within the *Tools* app, *Files* tab, upload some or all of following files
+3. Within the *Settings* app, *Exts* tab, enable:
+
+  - docker
+  - py
+  - nrelUtility
+
+4. Within the *Tools* app, *Files* tab, upload some or all of following files
    from `lib/` directory to `proj > wattile_test > io`, according to your
    development needs:
    
@@ -110,26 +120,26 @@ Extension App Note].
    - `pythonFuncs.trio`
    - `supportFuncs.trio`
 
-4. (Optional) Pick a marker (or "flag") tag to attach to each imported function
+5. (Optional) Pick a marker (or "flag") tag to attach to each imported function
    to facilitate easy querying for later export. 
    
    - These instructions assume your flag tag is `wattileDev`.
    - For organization, you may want to use a different flag tag for each file.
 
-5. In the *Tools* app, *Shell* tab, execute the following for each file `x.trio`
+6. In the *Tools* app, *Shell* tab, execute the following for each file `x.trio`
    that contains functions you need to import:
    
    ```
-   ioReadTrio(`io/x.trio`).map(rec => diff(null, rec.merge({wattileDev}), {add})).commit
+   importFunctions(`io/x.trio`, {merge:{wattileDev}, commit})
    ```
    
    Alternatively, if you are not using a flag tag:
    
    ```
-   ioReadTrio(`io/x.trio`).map(rec => diff(null, rec), {add})).commit
+   importFunctions(`io/x.trio`, {commit})
    ```
 
-6. To verify that the functions were successfully imported, ceck the *Code* app
+7. To verify that the functions were successfully imported, ceck the *Code* app
    or query for them via the *Shell*:
    
    ```
@@ -169,13 +179,13 @@ duplicate function record(s).
    functions and export them to a Trio file.
 
   ```
-  readAll(func and wattileDev).removeCols(["id","wattileDev","mod"]).ioWriteTrio(`io/x.trio`)
+  readAll(func and wattileDev).exportFunctions(`io/x.trio`, {merge:{-wattileDev}})
   ```
 
   - The query within `readAll()` should match what you developed in Step 1 above
   - Modify `x.trio` to the desired name of your output file
-  - If you did not use a flag tag, modify the `removeCols()` part of the call
-    to: `removeCols(["id","mod"])`
+  - If you did not use a flag tag, you do not need to remove it with the `merge`
+    option of `exportFunctions()`.
    
 3. Download `x.trio` from SkySpark via the *Tools* app, *Files* tab (or copy it
    via your file system), then place it in the `lib/` directory.
@@ -190,12 +200,12 @@ Alternative Workflow:
    functions and prepare them for export:
    
   ```
-  readAll(func and wattileDev).removeCols(["id","wattileDev","mod"])
+  readAll(func and wattileDev).exportFunctions(null, {preview, merge:{-wattileDev}})
   ```
 
   - The query within `readAll()` should match what you developed in Step 1 above
-  - If you did not use a flag tag, modify the `removeCols()` part of the call
-    to: `removeCols(["id","mod"])`
+  - If you did not use a flag tag, you do not need to remove it with the `merge`
+    option of `exportFunctions()`.
 
 3. On the right-hand side of the *Shell*, find the view select button (it will
    likey say "Table") and change it to "Trio".

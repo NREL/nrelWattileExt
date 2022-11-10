@@ -93,11 +93,19 @@ Setup Instructions
    ioReadTrio(`io/setup.trio`).map(rec => diff(null, rec, {add})).commit
    ```
    
+   Or, if the `nrelUtility` ext is loaded, just run:
+   
+   ```
+   importFunctions(`io/setup.trio`, {commit})
+   ```
+   
    (If the setup function already exists in the current project, skip this step
    or remove the existing function first. Otherwise you will end up with a
    duplicate setup function.)
 
-8. For initial setup, in the *Tools* app, *Shell* tab, execute the newly
+8. Ensure Docker is running and the `wattile` Docker image is available.
+
+9. For initial setup, in the *Tools* app, *Shell* tab, execute the newly
    imported `testEnvironmentSetup()` function:
    
    ```
@@ -115,7 +123,7 @@ Setup Instructions
    `testEnvironmentSetup()` function.
 
 To check that the test environment is correctly configured, you can run the
-following command from the SkySpark  after completing steps 1-8 above:
+following command from the SkySpark  after completing steps 1-9 above:
 
 ```
 readAll(point and his).hisRead(2021-12-01)
