@@ -19,14 +19,14 @@ class Build : BuildPod
     meta    = [
                 "ext.name":        "nrelWattile",
                 "ext.icon":        "target",
-                "ext.depends":     "docker,py",
+                "ext.depends":     "docker,py,nrelUtility",
                 "org.name":        "NREL",
                 "org.uri":         "https://www.nrel.gov/",
                 "proj.name":       "NREL Wattile Extension",
-                "proj.uri":        "https://github.com/NREL/intelligentcampus-model-deploy", // TO DO: Update
-                "license.name":    "Commercial", // TO DO: Update
+                "proj.uri":        "https://github.com/NREL/nrelWattileExt/",
+                "license.name":    "Commercial", // TO DO: Update when open source
               ]
-    depends = ["sys 1.0"]
+    depends = ["sys 1.0+"]
     resDirs = [`lib/`, `locale/`]
     index   = ["skyarc.ext": "nrelWattileExt"]
   }
