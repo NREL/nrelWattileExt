@@ -64,10 +64,5 @@
     "description": "Synthetic Site Electricity Main Total Power",
     "unit": "kW",
     "pv": false
-  },
-  "window": {
-    "interval": "n:15 min",
-    "lags": "n:12",
-    "duration": "n:195 min"
   }
 }
