@@ -40,7 +40,7 @@ src:
     // Clear existing records (if applicable)
     if (opts.has("resetProject")) do
       // Existing recs
-      recsToTrash: readAll(weatherStation or site or equip or point or task)
+      recsToTrash: readAll(weatherStation or site or equip or point or wattileModel or task)
   
       if (not recsToTrash.isEmpty) do
         // Trash recs
@@ -105,7 +105,7 @@ src:
       // Write history
       hisWrite(pointData, point)
     end
-    
+  
     // User-specified image
     if (opts.has("image")) do
       image: opts->image
@@ -114,19 +114,19 @@ src:
         task,
         {taskExpr:task->taskExpr.replace("\"wattile\"", "\"" + opts->image + "\"")}
       ).commit
-    
+  
     // Default image
     else do
       image: "wattile"
     end
-    
+  
     // Copy the test model into io/wattile/models/
     // Note: First removes any existing test_model directory!
     ioDelete(`io/wattile/models/test_model/`)
     py({image:image})
       .pyExec("import shutil")
-      .pyEval("shutil.copytree('/trained_models/v4_exp_dir/', '/io/wattile/models/test_model/')")
-    
+      .pyEval("shutil.copytree('/trained_models/alfa_exp_dir/', '/io/wattile/models/test_model/')")
+      
     // Temporary: Deploy local copy of data_config.json (until one comes with the model)
     ioCopy(`io/predictors_config.json`, `io/wattile/models/test_model/predictors_config.json`, {overwrite})
   end
