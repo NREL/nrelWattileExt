@@ -128,5 +128,5 @@ src:
       .pyEval("shutil.copytree('/trained_models/v4_exp_dir/', '/io/wattile/models/test_model/')")
     
     // Temporary: Deploy local copy of data_config.json (until one comes with the model)
-    ioCopy(`io/data_config.json`, `io/wattile/models/test_model/data_config.json`, {overwrite})
+    ioCopy(`io/predictors_config.json`, `io/wattile/models/test_model/predictors_config.json`, {overwrite})
   end
