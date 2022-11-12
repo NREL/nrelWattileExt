@@ -19,7 +19,7 @@ class Build : BuildPod
     meta    = [
                 "ext.name":        "nrelWattile",
                 "ext.icon":        "target",
-                "ext.depends":     "docker,py",
+                "ext.depends":     "docker,py,nrelUtility",
                 "org.name":        "NREL",
                 "org.uri":         "https://www.nrel.gov/",
                 "proj.name":       "NREL Wattile Extension",
