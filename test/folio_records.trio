@@ -23,14 +23,15 @@ total
 tz:Denver
 unit:kW
 ---
-id:@294fd25e-1a126cc0 "Synthetic Site Electricity Main Total Power (Prediction)"
+id:@2b045a00-132458af "Synthetic Site Electricity Main Total Power (Lower Bound)"
 disMacro:"\$equipRef \$navName"
 equipRef:@294fcfbe-96ce7f29 "Synthetic Site Electricity Main"
 his
 hisInterval:15min
-hisRollupFunc:mean
+hisRollupFunc:min
 kind:Number
-navName:"Total Power (Prediction)"
+mod:2022-11-14T01:45:18.899Z
+navName:"Total Power (Lower Bound)"
 net
 point
 power
@@ -40,9 +41,50 @@ siteRef:@294fcf97-cf16a467 "Synthetic Site"
 total
 tz:Denver
 unit:kW
-wattileHis:v2
-wattileModelRef:@2a77042f-8116cf41 "Wattile Example Model"
 wattilePoint
+wattileQuantile:0.25
+---
+id:@294fd25e-1a126cc0 "Synthetic Site Electricity Main Total Power (Median)"
+disMacro:"\$equipRef \$navName"
+equipRef:@294fcfbe-96ce7f29 "Synthetic Site Electricity Main"
+his
+hisInterval:15min
+hisRollupFunc:median
+kind:Number
+mod:2022-11-14T01:45:18.899Z
+navName:"Total Power (Median)"
+net
+point
+power
+prediction
+predictionOf:@294fd256-a17bb5c7 "Synthetic Site Electricity Main Total Power"
+siteRef:@294fcf97-cf16a467 "Synthetic Site"
+total
+tz:Denver
+unit:kW
+wattilePoint
+wattileQuantile:0.5
+---
+id:@2b045a04-a816b268 "Synthetic Site Electricity Main Total Power (Upper Bound)"
+disMacro:"\$equipRef \$navName"
+equipRef:@294fcfbe-96ce7f29 "Synthetic Site Electricity Main"
+his
+hisInterval:15min
+hisRollupFunc:max
+kind:Number
+mod:2022-11-14T01:45:18.899Z
+navName:"Total Power (Upped Bound)"
+net
+point
+power
+prediction
+predictionOf:@294fd256-a17bb5c7 "Synthetic Site Electricity Main Total Power"
+siteRef:@294fcf97-cf16a467 "Synthetic Site"
+total
+tz:Denver
+unit:kW
+wattilePoint
+wattileQuantile:0.75
 ---
 id:@294fcfbe-96ce7f29 "Synthetic Site Electricity Main"
 disMacro:"\$siteRef \$navName"
