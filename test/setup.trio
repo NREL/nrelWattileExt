@@ -164,4 +164,3 @@ src:
       .pyExec("shutil.copytree('/trained_models/bravo_exp_dir/', '/io/wattile/bravo_model/')")
       .pyEval("'Done!'")
   end
-  end
