@@ -30,7 +30,6 @@ his
 hisInterval:15min
 hisRollupFunc:min
 kind:Number
-mod:2022-11-14T01:45:18.899Z
 navName:"Total Power (Lower Bound)"
 net
 point
@@ -51,7 +50,6 @@ his
 hisInterval:15min
 hisRollupFunc:median
 kind:Number
-mod:2022-11-14T01:45:18.899Z
 navName:"Total Power (Median)"
 net
 point
@@ -72,7 +70,6 @@ his
 hisInterval:15min
 hisRollupFunc:max
 kind:Number
-mod:2022-11-14T01:45:18.899Z
 navName:"Total Power (Upped Bound)"
 net
 point
