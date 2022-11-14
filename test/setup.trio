@@ -46,7 +46,8 @@ doc:
   1. 'testModelImport()': Import Wattile models as 'wattileModel' proxy records
   2. 'testModelSetup()': Prepare Wattile models on disk for prediction
   3. 'testPrediction()': Execute predictions using Wattile models
-  4. 'testPredictionSync()': Sync predictions from Wattile models to prediction points in SkySpark
+  4. 'testPredictionPointSetup()': Prepares prediction points to receive predictions
+  4. 'testPredictionPointSync()': Sync predictions from Wattile models to prediction points in SkySpark
   
   Some 'test*' functions accept an 'opts' argument that adjusts the behavior; see individual function documentation for details.
   
@@ -162,4 +163,5 @@ src:
       .pyExec("shutil.copytree('/trained_models/alfa_exp_dir/', '/io/wattile/alfa_model/')")
       .pyExec("shutil.copytree('/trained_models/bravo_exp_dir/', '/io/wattile/bravo_model/')")
       .pyEval("'Done!'")
+  end
   end
