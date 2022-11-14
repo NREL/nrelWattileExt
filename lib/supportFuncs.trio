@@ -230,7 +230,7 @@ src:
 ---
 name:wattileResolveRef
 doc:
-  Resolve 'refStr' into a valid `sys::Ref`. If the Ref does not exist in the cluster, throw an error.
+  Resolve 'refStr' into a valid `haystack::Ref`. If the Ref does not exist in the cluster, throw an error.
   
   Handles any of the following:
   
