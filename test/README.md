@@ -201,6 +201,8 @@ Getting Started
 After setup, to get started, first start Docker (if it isn't alreay running).
 Then, inspect and run the following functions:
 
-1. `task(@p:wattile_test:r:29e7afcb-0fcefdd7).testPrediction`
-
-**TO DO:** Cache URI on a point, call prediction and store history
+1. `testModelImport()`: Import Wattile models as `wattileModel` proxy records
+2. `testModelSetup()`: Prepare Wattile models on disk for prediction
+3. `testPrediction()`: Execute predictions using Wattile models
+4. `testPredictionPointSetup()`: Prepares `prediction` points to receive predictions
+5. `testPredictionPointSync()`: Sync predictions from Wattile models to `prediction` points in SkySpark
