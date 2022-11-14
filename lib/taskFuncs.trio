@@ -33,6 +33,7 @@ doc:
   - 'ts': Timestamp defining the beginning of prediction window
   
 func
+overridable
 src:
   (msg, image) => do
     // Input checking
@@ -54,21 +55,15 @@ src:
       // Nothing to do; initialization already handled above
       return "ok"
   
-    // Model setup
+    // Setup
     else if (action == "setup") do
-      // Load model configuration into task and into Python session: see wattilePythonModelSetup()
-      pySession.wattilePythonModelSetup(msg->model)
-  
-      // Return
-      return "ok"
-  
+      // Model setup: see wattilePythonModelSetup()
+      return pySession.wattilePythonModelSetup(msg->model)
+    
     // Predict
     else if (action == "predict") do
-      // Call prediction: see wattilePythonPredict()
-      output: pySession.wattilePythonPredict(msg->ts)
-  
-      // Return
-      return output
+      // Call prediction: see wattilePythonModelPredict()
+      return pySession.wattilePythonModelPredict(msg->model, msg->span)
     end
   
   end
