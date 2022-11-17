@@ -412,10 +412,7 @@ src:
           
           // Convert units
           history = history.hisMap(v => if (v.isNA) v else v.to(p["unit"]))
-          
-  // Temporary: for demonstration only, move timestamp to tomorrow
-  history = history.map() row => row.set("ts", dateTime(tomorrow(), row->ts.time))
-          
+                    
           // Write data
           hisWrite(history, p, {forecast})
         end
