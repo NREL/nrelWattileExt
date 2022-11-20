@@ -23,14 +23,46 @@ doc:
   - 'developer': Marker; also imports functions for extension development
     (see above)
   
-  If 'resetProject' is present (set), then this setup function will:
+  Test Environment
+  ----------------
   
-  1. Trash all existing 'weatherStation', 'site', 'equip', 'point', and 'task' records from the current project
+  When executed, this function creates a test environment consisting of:
+  
+  1. A 'weatherStation' record with 7 weather points
+  2. A 'site' record, with one 'meter' 'equip' record containing:
+    a. One 'power' 'sensor' 'point' records
+    b. Two 'power' 'prediction' 'point' records
+  3. One 'task' record for interfacing with the Wattile Python package
+  4. Two Wattile test models loaded as directories under 'io/wattile/': one each for the Alfa and Bravo Wattile architecture versions
+  5. A variety of 'test*' functions that test various aspects of Wattile interaction; see below.
+  
+  The various 'sensor' point records are populated with a single month of synthetic history (December 2020).
+  
+  Test Functions
+  --------------
+  
+  Test functions should be executed in the following order:
+  
+  1. 'testModelImport()': Import Wattile models as 'wattileModel' proxy records
+  2. 'testModelSetup()': Prepare Wattile models on disk for prediction
+  3. 'testPrediction()': Execute predictions using Wattile models
+  4. 'testPredictionPointSetup()': Prepares prediction points to receive predictions
+  4. 'testPredictionPointSync()': Sync predictions from Wattile models to prediction points in SkySpark
+  
+  Some 'test*' functions accept an 'opts' argument that adjusts the behavior; see individual function documentation for details.
+  
+  Project Reset
+  -------------
+  
+  In general, to start clean you need to reset the project. If the 'resetProject' option is present (set), then this setup function will:
+  
+  1. Trash all existing 'weatherStation', 'site', 'equip', 'point', 'task', and 'wattileModel' records from the current project
   2. Empty the trash
-  3. Overwrite any existing 'example*' or 'test*' functions found in 'example_funcs.trio'
-  4. Overwrite any existing extension functions (if 'developer' option is set)
-    
-  **Warning:** there is no recovery of any existing records after using the 'resetProject' option. Use with care!
+  3. Remove all existing model directories in 'io/wattile/models/'
+  4. Overwrite any existing 'example*' or 'test*' functions found in 'example_funcs.trio'
+  5. Overwrite any existing extension functions (if 'developer' option is set)
+  
+  **Warning:** there is no recovery of any existing records or files after using the 'resetProject' option. Use with care!
 func
 src:
   (opts:{}) => do
@@ -40,17 +72,19 @@ src:
     // Clear existing records (if applicable)
     if (opts.has("resetProject")) do
       // Existing recs
-      recsToTrash: readAll(weatherStation or site or equip or point or task)
-  
+      recsToTrash: readAll(weatherStation or site or equip or point or wattileModel or task)
       if (not recsToTrash.isEmpty) do
         // Trash recs
         recsToTrash.recTrash
   
         // Empty trash
         folioEmptyTrash()
+        
+        // Remove `io/wattile/` directory
+        ioDelete(`io/wattile/`)
       end
     end
-  
+    
     // Import Folio records
     recs: ioReadTrio(`io/folio_records.trio`)
       .toRecList
@@ -72,20 +106,20 @@ src:
       .toRecList
       .map(funcDiff)
       .commit
-    
+  
     // Import developer functions (optional)
     if (opts.has("developer")) do
       // File list
       files: ioDir(`io/`)
-      
+  
       // Find available developer functions
       files = files
-        .findAll() f => ["pythonFuncs.trio", "supportFuncs.trio", "taskFuncs.trio"].contains(f->name)
-      
+        .findAll() f => f->name.in(["pythonFuncs.trio", "supportFuncs.trio", "taskFuncs.trio"])
+  
       // Commit each
       files.each() f => ioReadTrio(f->uri).toRecList.map(funcDiff).commit
     end
-    
+  
     // Read point history
     data: ioReadZinc(`io/folio_his.zinc`)
   
@@ -105,4 +139,28 @@ src:
       // Write history
       hisWrite(pointData, point)
     end
+  
+    // User-specified image
+    if (opts.has("image")) do
+      image: opts->image
+      task: read(task and dis=="Wattile Python Task")
+      diff(
+        task,
+        {taskExpr:task->taskExpr.replace("\"wattile\"", "\"" + opts->image + "\"")}
+      ).commit
+  
+    // Default image
+    else do
+      image: "wattile"
+    end
+    
+    // Load 
+    
+    // Copy the test model into io/wattile/models/
+    // Note: First removes any existing test_model directory!
+    py({image:image})
+      .pyExec("import shutil")
+      .pyExec("shutil.copytree('/trained_models/alfa_exp_dir/', '/io/wattile/alfa_model/')")
+      .pyExec("shutil.copytree('/trained_models/bravo_exp_dir/', '/io/wattile/bravo_model/')")
+      .pyEval("'Done!'")
   end

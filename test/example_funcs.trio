@@ -1,295 +1,278 @@
-name:examplePythonInteraction
+name:testEnvironmentSetup
+doc:
+  Setup script to import test environment database records, functions, and point history into the current SkySpark project. Expects to find the following files in 'io' (required):
+  
+  - 'example_funcs.trio'
+  - 'folio_records.trio'
+  - 'folio_his.zinc'
+  
+  Optionally (with 'developer' option specified), also imports functions from:
+  
+  - 'pythonFuncs.trio'
+  - 'supportFuncs.trio'
+  - 'taskFuncs.trio'
+  
+  These files are available in the [intelligentcampus-model-deploy]`https://github.com/NREL/intelligentcampus-model-deploy` repo:
+  
+  - 'test/' directory for the required files
+  - 'lib/' directory for the developer function files
+  
+  The single **opts** argument accepts the following control options:
+  
+  - 'resetProject': Marker; reset the project before import
+  - 'developer': Marker; also imports functions for extension development
+    (see above)
+  
+  Test Environment
+  ----------------
+  
+  When executed, this function creates a test environment consisting of:
+  
+  1. A 'weatherStation' record with 7 weather points
+  2. A 'site' record, with one 'meter' 'equip' record containing:
+    a. One 'power' 'sensor' 'point' records
+    b. Two 'power' 'prediction' 'point' records
+  3. One 'task' record for interfacing with the Wattile Python package
+  4. Two Wattile test models loaded as directories under 'io/wattile/': one each for the Alfa and Bravo Wattile architecture versions
+  5. A variety of 'test*' functions that test various aspects of Wattile interaction; see below.
+  
+  The various 'sensor' point records are populated with a single month of synthetic history (December 2020).
+  
+  Test Functions
+  --------------
+  
+  Test functions should be executed in the following order:
+  
+  1. 'testModelImport()': Import Wattile models as 'wattileModel' proxy records
+  2. 'testModelSetup()': Prepare Wattile models on disk for prediction
+  3. 'testPrediction()': Execute predictions using Wattile models
+  4. 'testPredictionPointSetup()': Prepares 'prediction' points to receive predictions
+  5. 'testPredictionPointSync()': Sync predictions from Wattile models to 'prediction' points in SkySpark
+  
+  Some 'test*' functions accept an 'opts' argument that adjusts the behavior; see individual function documentation for details.
+  
+  Project Reset
+  -------------
+  
+  In general, to start clean you need to reset the project. If the 'resetProject' option is present (set), then this setup function will:
+  
+  1. Trash all existing 'weatherStation', 'site', 'equip', 'point', 'task', and 'wattileModel' records from the current project
+  2. Empty the trash
+  3. Remove all existing model directories in 'io/wattile/models/'
+  4. Overwrite any existing 'example*' or 'test*' functions found in 'example_funcs.trio'
+  5. Overwrite any existing extension functions (if 'developer' option is set)
+  
+  **Warning:** there is no recovery of any existing records or files after using the 'resetProject' option. Use with care!
 func
 src:
-  // Example Python Interaction
-  // Python interaction using a persistent session within a SkySpark task
-  // Contains four calls to the same task; returns results in a 4-element list
+  (opts:{}) => do
+    // Default options
+    opts = {}.merge(opts)
   
-  // 'pythonTask' argument is the task record or record ID, e.g. from one of...
-  //   task(@p:wattile_test:r:29e7afcb-0fcefdd7)
-  //   read(task and dis=="Persistent Python Container Task")
+    // Clear existing records (if applicable)
+    if (opts.has("resetProject")) do
+      // Existing recs
+      recsToTrash: readAll(weatherStation or site or equip or point or wattileModel or task)
+      if (not recsToTrash.isEmpty) do
+        // Trash recs
+        recsToTrash.recTrash
   
-  // This example to be removed in the future; retained for now because it is
-  // still a nice basic illustration of interacting with Python in a task
+        // Empty trash
+        folioEmptyTrash()
+        
+        // Remove `io/wattile/` directory
+        ioDelete(`io/wattile/`)
+      end
+    end
+    
+    // Import Folio records
+    recs: ioReadTrio(`io/folio_records.trio`)
+      .toRecList
+      .map(rec => diff(null, rec, {add}))
+      .commit
   
-  (pythonTask) => do
-    // Example 1: Run a generic Python command
-    res1: taskSend(pythonTask, "hex(11)") // "0xb"
-      .futureGet
+    // Helper function: create new or overwrite existing example functions
+    funcDiff: (rec) => do
+      existing: read(func and name==rec->name, false)
+      if (existing != null and opts.has("resetProject")) do
+        return diff(existing, rec)
+      else do
+        return diff(null, rec, {add})
+      end
+    end
+  
+    // Import example functions (required)
+    ioReadTrio(`io/example_funcs.trio`)
+      .toRecList
+      .map(funcDiff)
+      .commit
+  
+    // Import developer functions (optional)
+    if (opts.has("developer")) do
+      // File list
+      files: ioDir(`io/`)
+  
+      // Find available developer functions
+      files = files
+        .findAll() f => f->name.in(["pythonFuncs.trio", "supportFuncs.trio", "taskFuncs.trio"])
+  
+      // Commit each
+      files.each() f => ioReadTrio(f->uri).toRecList.map(funcDiff).commit
+    end
+  
+    // Read point history
+    data: ioReadZinc(`io/folio_his.zinc`)
+  
+    // Data columns (minus timestamp)
+    columns: data.colNames.remove(0) // 'ts' is column 0
+  
+    // Write point history by point
+    columns.each() cn => do
+      // Point to write
+      point: readById(data.col(cn).meta->id)
+  
+      // Data to write
+      pointData: data
+        .keepCols(["ts", cn])
+        .hisFindAll((v, t) => v != null)
+  
+      // Write history
+      hisWrite(pointData, point)
+    end
+  
+    // User-specified image
+    if (opts.has("image")) do
+      image: opts->image
+      task: read(task and dis=="Wattile Python Task")
+      diff(
+        task,
+        {taskExpr:task->taskExpr.replace("\"wattile\"", "\"" + opts->image + "\"")}
+      ).commit
+  
+    // Default image
+    else do
+      image: "wattile"
+    end
+    
+    // Load 
+    
+    // Copy the test model into io/wattile/models/
+    // Note: First removes any existing test_model directory!
+    py({image:image})
+      .pyExec("import shutil")
+      .pyExec("shutil.copytree('/trained_models/alfa_exp_dir/', '/io/wattile/alfa_model/')")
+      .pyExec("shutil.copytree('/trained_models/bravo_exp_dir/', '/io/wattile/bravo_model/')")
+      .pyEval("'Done!'")
+  end
+---
+name:testModelImport
+func
+src:
+  () => do
+    // Import Wattile models
+    wattileModels: ioDir(`io/wattile/`).wattileImportModels({conflict:"error"})
+    
+    // Import Wattile model, Alfa variant
+    alfaModel: wattileModels.find() f => f->uri.toStr.lower.contains("alfa")
+    alfaModel = diff(null, alfaModel.merge({dis:"Wattile Example: Alfa"}), {add}).commit
+    
+    // Import Wattile model, Bravo variant
+    bravoModel: wattileModels.find() f => f->uri.toStr.lower.contains("bravo")
+    bravoModel = diff(null, bravoModel.merge({dis:"Wattile Example: Bravo"}), {add}).commit
+    
+    // Return imported models
+    [alfaModel, bravoModel]
+  end
+---
+name:testModelSetup
+func
+src:
+  () => do
+    // Wattile Python task
+    wattileTask: read(wattileTask)
+    
+    // Run model setup for all wattileModel records
+    readAll(wattileModel).each() model => do
+      // Run model setup
+      wattileTask.taskSend({action:"setup", model:model}).futureGet
       
-    // futureGet() is required here; we must wait for the task result to come back
-    // (See task framework docs)
+      // Verify setup
+      config: ioReadJson(model->uri + "configs.json")
+      if (config->learning_algorithm->use_case != "prediction") do
+        throw "Model setup failed for: " + model.dis
+      end
+    end
     
-    // Example 2: Retrieve a value from a Python variable defined in the container
-    res2: taskSend(pythonTask, "myPythonVar")
-      .futureGet
-  
-    // Example 3: Run a custom function defined in the container
-    res3: taskSend(pythonTask, "myPythonFunc(1)")
-      .futureGet
-  
-    // Example 4: Pass some data via `io/`
-    
-    // Read some data and write it to CSV
-    read(point and power and sensor) // should only be one of these
-      .hisRead(2021-12-01)
-      .setColMeta("ts", {dis:"ts"}) // Forces column header to "ts"
-      .setColMeta("v0", {dis:"v0"}) // Forces column header to "v0"
-      .ioWriteCsv(`io/my_data.csv`)
-     
-    // Note: without the setColMeta() calls above, the CSV data headers will not
-    // be valid SkySpark tag names. They read into Python fine, but then the function
-    // will encounter an error on conversion back to SkySpark.
-    
-    // Read it into Python via Pandas and then return it
-    res4: taskSend(pythonTask, "hxpy.haystack.grid.Grid.from_dataframe(pandas.read_csv('/io/my_data.csv'))")
-      .futureGet
-    
-    // Combine results in a list and return for examination
-    [res1, res2, res3, res4]
+    // Return
+    "ok"
   end
 ---
-name:examplePythonTask
+name:testPrediction
 func
 src:
-  // Example Python Task
-  // Uses the SkySpark task framework to keep a persistent Python session available
-  
-  // Notes...
-  //   1. First you must have the Python docker image pulled; see SkySpark docs
-  //   2. 'msg' argument is a string containing Python code to pass to pyEval()
-  //   3. This is a very simple structure for task demonstration only
-  
-  // This example to be removed in the future; retained for now because it is
-  // still a nice basic illustration of interacting with Python in a task
-  
-  // Example task
-  (msg) => do
-    // Note: no type checking on 'msg' in this simple demo!
-  
-    // Session initialization callback; gets called once only
-    // (See Python extension docs)
-    taskPyInit: (session) => session
-      .pyExec("import pandas")
-      .pyExec("import hxpy")
-      .pyDefine("myPythonVar", "foo")
-      .pyExec("def myPythonFunc(x): return x + 1")
+  (opts:{}) => do
+    // Default options
+    opts = {
+      model: read(wattileModel and dis=="Wattile Example: Alfa"), // Wattile model
+      span:  dateTime(2021-12-08, time(08,00), "Denver")          // Time range for prediction
+    }.merge(opts)
     
-    // This py() session will be persisted between task invocations
-    result: py()
-      .pyInit(taskPyInit) // Init callback goes here; see docs
-      .pyEval(msg) // Here is where you might do some more complicated stuff!
-    
-    // Return result of pyEval()
-    return result
+    // Wattile Python task
+    wattileTask: read(wattileTask)
+  
+    // Run prediction
+    wattileTask
+      .taskSend({action: "predict", model:opts->model, span:opts->span})
+      .futureGet()
   end
 ---
-name:testPrepDataV4
+name:testPredictionPointSetup
 func
 src:
-  // Placeholder test harnass to run a prediction for a V4 model
-  // Adapted from previous prepDataForv4() function, but leverages task framework
-  
-  // 'wattileTask' argument is the task record or record ID, e.g. from one of...
-  //   task(@p:wattile_test:r:2a06ba36-9cf5ad53)
-  //   read(task and dis=="Predictive Analytics Python Task")
-  
-  (wattileTask) => do
-    /* Define inputs */
-  
-    // (Eventually these will be user inputs passed as arguments, of some variety, to the prediction task)
-  
-    // CONFIG: Specified manually for testing
-    config: {
-      "use_case": "prediction", // TO DO: This should eventually be a separate function, not a configuration option?
-      "start_time": "2018-01-01T00:00:00-07:00",
-      "end_time": "2022-01-01T00:00:00-07:00",
-      "target_var": "Synthetic Site Electricity Main Total Power", // NOTE: modified from "x"; not used currently
-      "predictor_columns": [
-        "SRRL BMS Dew Point Temperature",
-        "SRRL BMS Diffuse Horizontal Irradiance",
-        "SRRL BMS Direct Normal Irradiance",
-        "SRRL BMS Dry Bulb Temperature",
-        "SRRL BMS Global Horizontal Irradiance",
-        "SRRL BMS Relative Humidity",
-        "SRRL BMS Wind Speed at 19'"
-      ],
-
-      "DOW": ["binary_reg"],
-      "MOY": ["sincos"],
-      "HOD": ["sincos"],
-      "rolling_window": {
-        "active": true,
-        "type": "binned",
-        "minutes": 15
-      },
-      "data_time_interval_mins": 1,
-      "arch_version": 4,
-      "arch_type_variant": "lstm",
-      "window": 12,
-      "sequence_freq_min": 15,
-      "arch_type": "RNN",
-      "EC_future_gap_min": 0,
-      "data_split": "80:10:10",
-      "train_val_split": "Random",
-
-      "exp_dir": "/trained_models/v4_exp_dir/",
-      "transformation_method": "minmaxscale",
-      "num_epochs": 2,
-      "run_resume": false,
-      "train_batch_size": 5,
-      "val_batch_size": 1,
-      "qs": [
-        0.025,
-        0.25,
-        0.5,
-        0.75,
-        0.975
-      ],
-      "hidden_nodes": 5,
-      "layer_dim": 1,
-      "exp_id": "Debugging_for_rolling_stats",
-      /*
-      "data_dir": "/io/data_dir", // Needed to run "use_case" : "train"
-      "splicer": {
-        "active": false,          // Needed to run "use_case" : "train"
-      },
-      "random_seed": 42,          // Needed to run "use_case" : "train"
-      "train_size_factor": 1,     // Needed to run "use_case" : "train"; this value is probably garbage
-      */
-    }
-  
-    // WINDOW: Extracted from configuration for now; the logic here needs to be verified
-    window: config->sequence_freq_min.as(1min) *  (config->window + 1) // In minutes
-  
-    // INPUTS:
-    // Each ID has a 'dis' tag manually defined to match the original trained model from the
-    // intelligentcampus-pred-analytics repo. We should get the two synthetic data set names
-    // and ids aligned so we don't have to use this hack. (Eventually this should load from
-    // a data set configuration file or similar.) Note that 'dis' tag affects CSV export, but
-    // does not affect data marshalling of grids SkySpark -> Python. (Column names "v0", "v1",
-    // etc. are used instead, regardless of 'dis' tag.)
-    inputs: [
-      {id:@p:wattile_test:r:278f8943-6a199bd7, dis:"SRRL BMS Dew Point Temperature"},
-      {id:@p:wattile_test:r:278f79c0-03da5abc, dis:"SRRL BMS Diffuse Horizontal Irradiance"},
-      {id:@p:wattile_test:r:278f79c0-4fe536b4, dis:"SRRL BMS Direct Normal Irradiance"},
-      {id:@p:wattile_test:r:278f79c0-8a8f26b0, dis:"SRRL BMS Dry Bulb Temperature"},
-      {id:@p:wattile_test:r:278f79c0-8d722bdb, dis:"SRRL BMS Global Horizontal Irradiance"},
-      {id:@p:wattile_test:r:278f79c0-e7db4305, dis:"SRRL BMS Relative Humidity"},
-      {id:@p:wattile_test:r:278f79c0-c1f48e5c, dis:"SRRL BMS Wind Speed at 19'"}
-    ]
-  
-    // TIMESTAMP: What is the timestamp around which we want to call the prediction
-    ts: dateTime(2021-12-08, time(08,00), "Denver") // December 8, 2021 08:00 MST
-  
-    /* Run prep_for_rnn in Python */
-  
-    // Uses the task framework to send actions and retrieve results
-  
-    // Model setup: see wattilePythonTask() and wattileModelSetup()
-    wattileTask.taskSend({
-      action:   "setup",
-      config:   config
-    })
-  
-    // Read and prepare data: see wattilePythonTask(), wattileReadHis(), and wattilePythonPredict()
-    future: wattileTask.taskSend({
-      action:   "predict",
-      inputs:   inputs,
-      ts:       ts,
-      window:   window
-    })
-  
-    // Get result
-    future.futureGet()
-  
+  () => do
+    // Get prediction points
+    points: readAll(point and wattilePoint and wattileQuantile and predictionOf==@p:wattile_test:r:294fd256-a17bb5c7)
+    
+    // Abort if existing model refs
+    n: points.findAll(p => p.has("wattileModelRef")).size
+    if (n > 0) do
+      throw n.toStr + " points already have 'wattileModelRef'"
+    end
+    
+    // Models
+    alfaModel: readAll(wattileModel).find(m => m->uri.toStr.contains("alfa") and m.dis.lower.contains("alfa"))
+    bravoModel: readAll(wattileModel).find(m => m->uri.toStr.contains("bravo") and m.dis.lower.contains("bravo"))
+    
+    // Assign models to points: bounds from Alfa, median from Bravo
+    diffs: points.toRecList.map() p => do
+      if (p->wattileQuantile == 0.25) return diff(p, {wattileModelRef:alfaModel.toRecId})  // Lower bound
+      if (p->wattileQuantile == 0.50) return diff(p, {wattileModelRef:bravoModel.toRecId}) // Median
+      if (p->wattileQuantile == 0.75) return diff(p, {wattileModelRef:alfaModel.toRecId})  // Upper bound
+    end
+    
+    // Commit
+    diffs.commit
   end
 ---
-name:testPrepDataV5
+name:testPredictionPointSync
 func
 src:
-  // Placeholder test harnass to run a prediction for a V5 model
-  // Adapted from previous prepDataForv5() function, but leverages task framework
-  
-  // 'wattileTask' argument is the task record or record ID, e.g. from one of...
-  //   task(@p:wattile_test:r:2a06ba36-9cf5ad53)
-  //   read(task and dis=="Predictive Analytics Python Task")
-  
-  (wattileTask) => do
-    /* Define inputs */
-  
-    // (Eventually these will be user inputs passed as arguments, of some variety, to the prediction task)
-  
-    // CONFIG: Specified manually for testing
-    config: {
-      "use_case": "prediction", // TO DO: This should eventually be a separate function, not a configuration option?
-      "target_var": "Synthetic Site Electricity Main Total Power", // NOTE: modified from "x"; not used currently
-      "DOW": ["binary_reg"],
-      "MOY": ["sincos"],
-      "HOD": ["sincos"],
-      "rolling_window": {
-        "active": true,
-        "type": "binned",
-        "minutes": 15
-      },
-      "data_time_interval_mins": 1,
-      "arch_version": 5,
-      "window": 24,
-      "sequence_freq_min": 15,
-      "arch_type": "RNN",
-      "EC_future_gap_min": 0,
-      "data_split": "80:10:10",
-      "exp_dir": "/io/exp_dir",
-      "train_val_split": "Random",
-      "S2S_stagger": {
-        "initial_num": 72,
-        "decay": 0,
-        "secondary_num": 0
-     }
-    }
-  
-    // WINDOW: Extracted from configuration for now; the logic here needs to be verified
-    window: config->sequence_freq_min.as(1min) *  (config->window + 1) // In minutes
+  (opts:{}) => do
+    // Default options
+    defaultSpan: dateTime(2021-12-08, time(00,00), "Denver")..dateTime(2021-12-08, time(08,00), "Denver")
+    opts = {
+      span:      defaultSpan, // Time range for prediction
+      overwrite: true,        // Overwrite?
+      forecast:  false,       // Sync forecast?
+    }.merge(opts)
+      
+    // Wattile Python task
+    wattileTask: read(wattileTask)
     
-    // INPUTS:
-    // Each ID has a 'dis' tag manually defined to match the original trained model from the
-    // intelligentcampus-pred-analytics repo. We should get the two synthetic data set names
-    // and ids aligned so we don't have to use this hack. (Eventually this should load from
-    // a data set configuration file or similar.) Note that 'dis' tag affects CSV export, but
-    // does not affect data marshalling of grids SkySpark -> Python. (Column names "v0", "v1",
-    // etc. are used instead, regardless of 'dis' tag.)
-    inputs: [
-      {id:@p:wattile_test:r:278f8943-6a199bd7, dis:"SRRL BMS Dew Point Temperature"},
-      {id:@p:wattile_test:r:278f79c0-03da5abc, dis:"SRRL BMS Diffuse Horizontal Irradiance"},
-      {id:@p:wattile_test:r:278f79c0-4fe536b4, dis:"SRRL BMS Direct Normal Irradiance"},
-      {id:@p:wattile_test:r:278f79c0-8a8f26b0, dis:"SRRL BMS Dry Bulb Temperature"},
-      {id:@p:wattile_test:r:278f79c0-8d722bdb, dis:"SRRL BMS Global Horizontal Irradiance"},
-      {id:@p:wattile_test:r:278f79c0-e7db4305, dis:"SRRL BMS Relative Humidity"},
-      {id:@p:wattile_test:r:278f79c0-c1f48e5c, dis:"SRRL BMS Wind Speed at 19'"}
-    ]
-  
-    // TIMESTAMP: What is the timestamp around which we want to call the prediction
-    ts: dateTime(2021-12-08, time(08,00), "Denver") // December 8, 2021 08:00 MST
-  
-    /* Run prep_for_rnn in Python */
-  
-    // Uses the task framework to send actions and retrieve results
-  
-    // Model setup: see wattilePythonTask() and wattileModelSetup()
-    wattileTask.taskSend({
-      action:   "setup",
-      config:   config
-    })
-  
-    // Read and prepare data: see wattilePythonTask(), wattileReadHis(), and wattilePythonPredict()
-    future: wattileTask.taskSend({
-      action:   "predict",
-      inputs:   inputs,
-      ts:       ts,
-      window:   window
-    })
-  
-    // Get result
-    future.futureGet()
-  
+    // Points: all properly-configured Wattile points
+    points: readAll(point and wattilePoint and wattileQuantile and wattileModelRef)
+    
+    // Call sync
+    syncOpts: {overwrite:opts["overwrite"], forecast:opts["forecast"]}
+    points.wattileSyncHis(wattileTask, opts->span, syncOpts)
   end
