@@ -79,6 +79,7 @@ Setup Instructions
    2. `example_funcs.trio`
    3. `folio_records.trio`
    4. `folio_his.zinc`
+   5. `data_config.json` (Temporary; will not be needed in the future)
    
    Alternatively, transfer these files manually to your SkySpark project's `io`
    directory using your operating system. (If you intend to develop the
@@ -92,22 +93,37 @@ Setup Instructions
    ioReadTrio(`io/setup.trio`).map(rec => diff(null, rec, {add})).commit
    ```
    
+   Or, if the `nrelUtility` ext is loaded, just run:
+   
+   ```
+   importFunctions(`io/setup.trio`, {commit})
+   ```
+   
    (If the setup function already exists in the current project, skip this step
    or remove the existing function first. Otherwise you will end up with a
    duplicate setup function.)
 
-8. In the *Tools* app, *Shell* tab, execute the newly imported
-   `testEnvironmentSetup()` function:
+8. Ensure Docker is running and the `wattile` Docker image is available.
+
+9. For initial setup, in the *Tools* app, *Shell* tab, execute the newly
+   imported `testEnvironmentSetup()` function:
    
    ```
    testEnvironmentSetup()
    ```
    
-   See *Notes* below for some configuration options you can pass to the
+   For subsequent setups, if you are attempting to reset your local test
+   environment with updated functions and data, use:
+   
+   ```
+   testEnvironmentSetup({resetProject})
+   ```
+   
+   Also see *Notes* below for some configuration options you can pass to the
    `testEnvironmentSetup()` function.
 
 To check that the test environment is correctly configured, you can run the
-following command from the SkySpark  after completing steps 1-8 above:
+following command from the SkySpark  after completing steps 1-9 above:
 
 ```
 readAll(point and his).hisRead(2021-12-01)
@@ -151,19 +167,42 @@ and one power point named "Synthetic Site Electricity Main Total Power".
    See the top-level **README** for instructions on exporting modified versions
    of the functions to include in the extension codebase.
 
+3. `testEnvironmentSetup()` copies a model from the Wattile Docker image to the
+   common mount point `/io/wattile/models/test_model/` so that it is visible by
+   SkySpark. The default Wattile Docker image name is `"wattile"`; users can
+   override this with the `image` option, as in:
+   
+   ```
+   testEnvironmentSetup({image:"different_wattile"})
+   ```
+   
+   Setting `image` at setup will also update the name of the image referenced in
+   the Wattile Python interaction task record.
+
 3. If you need to replace any existing files (`setup.trio`,
    `example_funcs.trio`, `folio_records.trio`, etc.) after initially uploading
    them via the SkySpark *Tools* app, you must first delete the existing
    versions. Otherwise, SkySpark will make a new copy with an integer suffix
    rather than overwriting the existing version.)
-   
+
+### Summary of testEnvironmentSetup() options
+
+Options for `testEnvironmentSetup()`, passed as a dict:
+
+- `developer`: Also import **nrelWattileExt** functions for developing
+- `resetProject`: Delete existing records before running setup
+- `image`: Specify name of Python Docker image to use (default = `"wattile"`)
+
+See above for usage guidance.
+
 Getting Started
 ---------------
 
 After setup, to get started, first start Docker (if it isn't alreay running).
 Then, inspect and run the following functions:
 
-1. `task(@p:wattile_test:r:29e7afcb-0fcefdd7).examplePythonInteraction`
-2. `task(@p:wattile_test:r:2a06ba36-9cf5ad53).testPrepDataV4`
-
-You can also try `testPrepDataV5`.
+1. `testModelImport()`: Import Wattile models as `wattileModel` proxy records
+2. `testModelSetup()`: Prepare Wattile models on disk for prediction
+3. `testPrediction()`: Execute predictions using Wattile models
+4. `testPredictionPointSetup()`: Prepares `prediction` points to receive predictions
+5. `testPredictionPointSync()`: Sync predictions from Wattile models to `prediction` points in SkySpark

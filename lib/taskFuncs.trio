@@ -1,6 +1,6 @@
 name:wattilePythonTask
 doc:
-  Task function to handle Docker container interactions. 
+  Task function to handle Docker container interactions.
   
   **TO DO:** Full documentation (not just scribbled notes)
   
@@ -19,70 +19,51 @@ doc:
   Setup
   -----
   
-  Loads a model configuration in preparation for prediction
+  Loads a model in preparation for prediction
   
   - 'action': "setup"
-  - 'model': Uri pointing to a trained model <- NOT USED YET
-  - 'config': Dictionary containing the model configuration or Uri pointing to a JSON-encoded configuration file
+  - 'uri': Uri pointing to a trained model (directory)
   
   Predict
   -------
   
-  Executes a prediction
+  Executes a prediction for a model previously loaded via the setup action
   
   - 'action': "predict"
-  - 'input': Record(s) to use for prediction input (ref, dict, list, or grid)
   - 'ts': Timestamp defining the beginning of prediction window
-  - 'window': Time window used to query input history (with 'ts' as the end of the window)
   
-  The contents of 'input' will be coerced to a list via `toRecList`.
-  
-  **TO DO:** How to handle Python data frame column names?
 func
+overridable
 src:
   (msg, image) => do
     // Input checking
     if (image.isStr == false) throw "'image' must be a string specifying a Docker image."
     if (msg.isDict == false) throw "'msg' must be a dictionary."
     if (msg.missing("action")) throw "'msg' dictionary must define an 'action' tag."
-    
+  
     // Get action (case-insensitive)
     action: msg->action.lower
-    
+  
     // Task progress: last action received
     taskProgress({action:action})
-      
+  
     // Initialize Python session
     pySession: py({image:image}).pyInit(wattilePythonInit)
-    
+  
     // Initialization
     if (action == "init") do
       // Nothing to do; initialization already handled above
       return "ok"
-    
-    // Model setup
+  
+    // Setup
     else if (action == "setup") do
-      // Load model and configuration into Python session: see wattilePythonModelSetup()
-      pySession.wattilePythonModelSetup(msg->config)
-      
-      // Return
-      return "ok"
+      // Model setup: see wattilePythonModelSetup()
+      return pySession.wattilePythonModelSetup(msg->model)
     
     // Predict
     else if (action == "predict") do
-      // Calculate span based on specified winfow
-      span: (msg->ts - msg->window)..(msg->ts)
-  
-      // Read and prepare data: see wattileReadHis()
-      data: wattileReadHis(msg->inputs, span)
-  
-      // Call prediction: see wattilePythonPredict()
-      output: pySession.wattilePythonPredict(data, msg->inputs)
-      
-      // NOTE: For the moment, wattilePythonPredict() is only running prep_for_rnn
-      
-      // Return
-      return output
+      // Call prediction: see wattilePythonModelPredict()
+      return pySession.wattilePythonModelPredict(msg->model, msg->span)
     end
-    
+  
   end

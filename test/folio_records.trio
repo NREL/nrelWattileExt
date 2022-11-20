@@ -23,20 +23,65 @@ total
 tz:Denver
 unit:kW
 ---
-id:@294fd25e-1a126cc0 "Synthetic Site Electricity Main Total Power (Prediction)"
+id:@2b045a00-132458af "Synthetic Site Electricity Main Total Power (Lower Bound)"
 disMacro:"\$equipRef \$navName"
 equipRef:@294fcfbe-96ce7f29 "Synthetic Site Electricity Main"
-hisRollupFunc:mean
+his
+hisInterval:15min
+hisRollupFunc:min
 kind:Number
-navName:"Total Power (Prediction)"
+navName:"Total Power (Lower Bound)"
 net
 point
 power
 prediction
+predictionOf:@294fd256-a17bb5c7 "Synthetic Site Electricity Main Total Power"
 siteRef:@294fcf97-cf16a467 "Synthetic Site"
 total
 tz:Denver
 unit:kW
+wattilePoint
+wattileQuantile:0.25
+---
+id:@294fd25e-1a126cc0 "Synthetic Site Electricity Main Total Power (Median)"
+disMacro:"\$equipRef \$navName"
+equipRef:@294fcfbe-96ce7f29 "Synthetic Site Electricity Main"
+his
+hisInterval:15min
+hisRollupFunc:median
+kind:Number
+navName:"Total Power (Median)"
+net
+point
+power
+prediction
+predictionOf:@294fd256-a17bb5c7 "Synthetic Site Electricity Main Total Power"
+siteRef:@294fcf97-cf16a467 "Synthetic Site"
+total
+tz:Denver
+unit:kW
+wattilePoint
+wattileQuantile:0.5
+---
+id:@2b045a04-a816b268 "Synthetic Site Electricity Main Total Power (Upper Bound)"
+disMacro:"\$equipRef \$navName"
+equipRef:@294fcfbe-96ce7f29 "Synthetic Site Electricity Main"
+his
+hisInterval:15min
+hisRollupFunc:max
+kind:Number
+navName:"Total Power (Upped Bound)"
+net
+point
+power
+prediction
+predictionOf:@294fd256-a17bb5c7 "Synthetic Site Electricity Main Total Power"
+siteRef:@294fcf97-cf16a467 "Synthetic Site"
+total
+tz:Denver
+unit:kW
+wattilePoint
+wattileQuantile:0.75
 ---
 id:@294fcfbe-96ce7f29 "Synthetic Site Electricity Main"
 disMacro:"\$siteRef \$navName"
@@ -54,11 +99,13 @@ weatherStation
 ---
 id:@278f79c0-8d722bdb "Synthetic Weather Station Global Horizontal Irradiance"
 chartGroup:irradiance
+defVal:0W/m²_irr
 disMacro:"\$weatherStationRef \$navName"
 global
 his
 irradiance
 kind:Number
+minVal:0W/m²_irr
 navName:Global Horizontal Irradiance
 point
 sensor
@@ -85,11 +132,13 @@ weatherStationRef:@278f790b-44057bc3 "Synthetic Weather Station"
 ---
 id:@278f79c0-4fe536b4 "Synthetic Weather Station Direct Normal Irradiance"
 chartGroup:irradiance
+defVal:0W/m²_irr
 direct
 disMacro:"\$weatherStationRef \$navName"
 his
 irradiance
 kind:Number
+minVal:0W/m²_irr
 navName:Direct Normal Irradiance
 point
 sensor
@@ -100,11 +149,13 @@ weatherStationRef:@278f790b-44057bc3 "Synthetic Weather Station"
 ---
 id:@278f79c0-03da5abc "Synthetic Weather Station Diffuse Horizontal Irradiance"
 chartGroup:irradiance
+defVal:0W/m²_irr
 diffuse
 disMacro:"\$weatherStationRef \$navName"
 his
 irradiance
 kind:Number
+minVal:0W/m²_irr
 navName:Diffuse Horizontal Irradiance
 point
 sensor
@@ -147,9 +198,11 @@ weatherStationRef:@278f790b-44057bc3 "Synthetic Weather Station"
 ---
 id:@278f79c0-c1f48e5c "Synthetic Weather Station Wind Speed"
 chartGroup:wind_speed
+defVal:0mph
 disMacro:"\$weatherStationRef \$navName"
 his
 kind:Number
+minVal:0mph
 navName:"Wind Speed"
 point
 sensor
@@ -160,12 +213,8 @@ weather
 weatherStationRef:@278f790b-44057bc3 "Synthetic Weather Station"
 wind
 ---
-id:@29e7afcb-0fcefdd7 "Persistent Python Container Task"
-dis:Persistent Python Container Task
+id:@2a06ba36-9cf5ad53 "Wattile Python Task"
+dis:Wattile Python Task
 task
-taskExpr:examplePythonTask
----
-id:@2a06ba36-9cf5ad53 "Predictive Analytics Python Task"
-dis:Predictive Analytics Python Task
-task
+wattileTask
 taskExpr:"(msg) => wattilePythonTask(msg, \"wattile\")"

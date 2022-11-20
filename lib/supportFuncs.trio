@@ -1,40 +1,736 @@
+name:wattileExportTrainingData
+doc:
+  For the specified 'predictors', 'targets', and time 'span', export historical data to directory 'dir' for training Wattile models. 'predictors' and 'targets' are any inputs supported by `toRecList`; 'span' is any input supported by `toSpan`. The exported data are consistent with the training data input format required by [Wattile]`https://github.com/NREL/Wattile/blob/main/docs/Data_configs.md`.
+  
+  Details
+  -------
+  
+  Writes the following files within 'dir':
+  
+  - '<<Name>> Predictors <<Date Range>>.csv': Time series file(s) containing predictor (input) data in CSV format
+  - '<<Name>> Targets <<Date Range>>.csv': Time series file(s) containing target (output) data in CSV format
+  - '<<Name>> Config.json': Data set configuration metadata in JSON format
+  
+  In the filenames, '<<Name>>' is the data set name (which defaults to the name of 'dir'; see *Options*) and '<<Date Range>>' is the date range spanned by each file (with format dependent on the export options selected).
+  
+  Each CSV file contains a 'Timestamp' column followed by one or more numeric value columns corresponding to either the predictor or the target points. Timestamps are exported in [ISO 8601]`https://en.wikipedia.org/wiki/ISO_8601` standard format, including time zone offset and time zone name. Only numeric and Boolean data types are supported; Booleans are converted to 0/1 on export.
+  
+  The JSON configuration file consists of a single top-level dictionary containing five nested dictionaries:
+  
+  - 'dates': The data set 'start' and 'end' dates (timestamps)
+  - 'predictors': A list of predictor variables, including the following metadata for each:
+    - 'id': Unique identifier
+    - 'dis': Description; populated via `dis`
+    - 'column': Column name in CSV file(s)
+    - 'unit': Unit
+  - 'targets': A list of target variables, including at minimum
+    the `column` field and following the same conventions as `predictors`
+  - 'files': Provides a list of all CSV files in the data set, each as an dictionary
+    with the following metadata:
+    - 'filename': Name of the associated CSV file
+    - 'contentType': Either '"predictors"' or '"targets"'
+    - 'start': Start of the time range spanned by the file
+    - 'end': End of the time range spanned by the file
+  - 'export_options': The 'opts' arguments used for the export (provided for repeatability)
+  
+  The JSON configuration file uses Haystack [Json]`docHaystack::Json` encoding (Version 3 by default; see *Options*). Unicode characters are not escaped.
+  
+  Options
+  -------
+  
+  Export behavior can be modified by control options passed via 'opts':
+  
+  - 'appendUnits': Boolean; if 'true' then units will be appended to column names (Default = false)
+  - 'clean': Boolean; if 'true' then data will be range-cleaned prior to export by removing values outside the range defined by each point's `minVal` and `maxVal` tags (Default = false)
+  - 'defVal': Number or NA; governs range cleaning behavior; see below (default = none) 
+  - 'interpolate': Boolean; if 'true' then data will be interpolated prior to export (Default = false)
+  - 'interval': Number; optional interval at which to roll up the data (Default = none)
+  - 'jsonVersion': Str; either 'v3' or 'v4'; see [Json]`docHaystack::Json` (Default = 'v3')
+  - 'name': Str; data set name to use in output files (Default = name of 'dir')
+  - 'preview': Boolean; if 'true' then return the data set configuration JSON without writing any files (Default = false)
+  - 'splitBy': Str; One of "day", "week", "month", or "year" indicating the interval at which to split the data files (Default = no splitting)
+  
+  The 'appendUnits', 'clean', 'interpolate', and 'preview' options may be also be passed as markers, with 'x' equivalent to 'x:true' and '-x' equivalent to 'x:false'.
+  
+  Range Cleaning
+  --------------
+  
+  If 'clean' is 'true', values outside the range '[minVal, maxVal]', as defined by the point's `minVal` and `maxVal` tags, are removed from the data set. (Missing 'minVal' and 'maxVal' tags imply permissible minimum and maximum values of negative and positive infinity, respectively.)
+  
+  If the 'defVal' option is provided, values removed are replaced with 'defVal'; otherwise, they are replaced with 'Null'. Optionally, 'defVal' may be passed as a tag on each point; 'defVal' point tags override the global option on a per-point basis.
+  
+  Range cleaning is performed prior to rollup and/or interpolation.
+  
+  Rollup
+  ------
+  
+  If the 'interval' option is provided, data are rolled up at the specified interval using `hisRollupAuto`. (Boolean points are instead rolled up using `durTrue`, then normalized by the interval to obtain a fractional value between 0 and 1.) Rollup occurs prior to interpolation. 
+  
+  Interpolation
+  -------------
+  
+  If 'interpolate' is 'true', the entire history grid is interpolated prior to export, following SkySpark's normal interpolation rules. Interpolation is performed for each exported CSV file independently, therefore, the set of timestamps in target and predictor CSV file for the same date range are not guaranteed to be the same.
+func
+overridable
+src:
+  (predictors, targets, span, dir, opts:{}) => do
+    // Argument parsing
+    predictors = predictors.toRecList.sort((a, b) => a.dis <=> b.dis)
+    targets = targets.toRecList.sort((a, b) => a.dis <=> b.dis)
+    span = span.toSpan
+    if (dir.isStr) dir = parseUri(dir)
+    
+    // Default options
+    opts = {appendUnits:false, clean:false, interpolate:false, jsonVersion:"v3", preview:false}.merge(opts)
+    
+    // T/F options
+    opts = opts.set("appendUnits", opts.has("appendUnits") and opts["appendUnits"] != false)
+    opts = opts.set("clean",       opts.has("clean")       and opts["clean"]       != false)
+    opts = opts.set("interpolate", opts.has("interpolate") and opts["interpolate"] != false)
+    opts = opts.set("preview",     opts.has("preview")     and opts["preview"]     != false)
+    
+    // Verify directory
+    if (not dir.uriIsDir) throw "'dir' `" + dir.toStr + "` is not a directory."
+    
+    // Default name = name of directory
+    if (opts.missing("name")) opts = opts.set("name", dir.uriName)
+    
+    // Verify JSON version option
+    if (not opts["jsonVersion"].in(["v3", "v4"])) do
+      throw "'jsonVersion' option must be either \"v3\" or \"v4\"."
+    end
+    
+    // Time splitting
+    if (opts["splitBy"] == null) do
+      spans: [span]
+      spanLabels: null
+    else if (opts->splitBy == "day") do
+      spans: span.toDayList(true)
+      spanLabels: spans.map(s => s.start.format("YYYY-MM-DD"))
+    else if (opts->splitBy == "week") do
+      spans: span.toWeekList(true)
+      spanLabels: spans.map(s => s.start.format("'Week of 'YYYY-MM-DD"))
+    else if (opts->splitBy == "month") do
+      spans: span.toMonthList(true)
+      spanLabels: spans.map(s => s.start.format("YYYY-MM"))
+    else if (opts->splitBy == "year") do
+      spans: span.toYearList(true)
+      spanLabels: spans.map(s => s.start.format("YYYY"))
+    else do
+      throw "'splitBy' option must be one of: \"day\", \"week\", \"month\", \"year\"."
+    end
+    
+    // Standardize column labels for output
+    setColumnLabel: point => do
+      // Column description
+      dis: point.dis
+      
+      // Append units?
+      if (opts->appendUnits and point.has("unit")) do
+        dis = dis + " (" + point->unit + ")"
+      end
+      
+      // Store 'dis' = column label on export
+      point.merge({dis:dis, column:dis, -disMacro})
+    end
+    targets = targets.map(setColumnLabel)
+    predictors = predictors.map(setColumnLabel)
+    
+    // Internval function to perform range cleaning only if 'clean' option is set
+    if (opts->clean) do
+      hisRangeCleanInternal: (src, point) => do
+        // Get default value
+        if (point.has("defVal")) do
+          defVal: point->defVal
+        else if (opts.has("defVal")) do
+          defVal: opts->defVal
+        else do
+          defVal: null
+        end
+        
+        // Get range
+        minVal: if (point.has("minVal")) point->minVal else negInf()
+        maxVal: if (point.has("maxVal")) point->minVal else posInf() 
+        
+        // No default value: remove
+        if (defVal == null) do
+          src = src.hisFindAll((v, t) => v != na() and v >= minVal.to(v) and v <= maxVal.to(v)) 
+          
+        // Default value: replace
+        else do
+          src = src.hisMap() (v, t) => do
+            if (v == na() or (v >= minVal.to(v) and v <= maxVal.to(v))) do
+              return v
+            else do
+              return defVal
+            end
+          end
+        end
+        
+        // Return
+        return src
+      end
+    else do
+      hisRangeCleanInternal: (src, point) => src
+    end
+    
+    // Internal function to roll up history only if 'interval' option is set
+    if (opts.has("interval")) do
+      hisRollupInternal: (src, point) => do
+        // Numeric
+        if (point["kind"] == "Number") do
+          return src.hisRollupAuto(opts->interval)
+        
+        // Boolean
+        else if (point["kind"] == "Bool") do
+          hisRollup(src, durTrue, opts->interval)
+            .hisMap(v => (v.to(opts->interval) / opts->interval).as(""))
+        
+        // Unsupported
+        else do
+          throw "Unsupported kind \"" + p["kind"] + "\" for point: " + p.dis
+        end
+      end
+    else do
+      hisRollupInternal: (src, point) => src
+    end
+    
+    // Internal function to interpolate history only if 'interpolate' option is set
+    if (opts.has("interpolate")) do
+      hisInterpolateInternal: (src) => src.hisInterpolate
+    else do
+      hisInterpolateInternal: (src) => src
+    end
+    
+    // Internal function to convert and remove units
+    hisHandleUnits: (src, point) => do
+      src.hisMap() (v, t) => if (v.isNumber) v.to(point["unit"]).as("") else v
+    end
+  
+    // Internal function to read, process, and export history for specific time range
+    hisExportInternal: (points, spanLocal, file) => do
+      // Read data via Xquery
+      data: xq()
+        .xqDefine("span", spanLocal)
+        .xqReadByIdsList(points.toRecIdList)
+        .xqMap("p => {id:p->id, hisGrid:p.toRecId.hisRead(span, {-limit})}")
+        .xqExecute
+  
+      // Range cleaning, unit handling, and rollup
+      data = data.map() dict => do
+        // Which point?
+        p: points.find(x => x->id == dict->id)
+        
+        // Extract history grid
+        history: dict->hisGrid
+        
+        // Set up column label for CSV output
+        history = history.addColMeta("v0", {dis:p->dis, -disMacro})
+        
+        // Range clean, rollup, remove units
+        history
+          .hisRangeCleanInternal(p)
+          .hisRollupInternal(p)
+          .hisHandleUnits(p)
+      end
+      
+      // Join, interpolate, clip
+      data = data
+        .hisJoin
+        .hisInterpolateInternal
+        .hisClip
+        .addColMeta("ts", {dis:"Timestamp"})
+      
+      // Write to file
+      if (not opts->preview) data.ioWriteCsv(file)
+      
+      // Return file metadata
+      return {
+        filename: file.uriName,
+        start:    spanLocal.start,
+        end:      spanLocal.end
+      }
+    end
+    
+    // Export targets
+    targetFiles: spans.map() (s, i) => do
+      // Output filename
+      suffix: if (spanLabels != null) (" " + spanLabels[i]) else ""
+      f: opts->name + " " + "Targets" + suffix + ".csv"
+      
+      // Execute export and return file info
+      hisExportInternal(targets, s, dir + f).merge({contentType:"targets"})
+    end
+    
+    // Export predictors
+    predictorFiles: spans.map() (s, i) => do
+      // Output filename
+      suffix: if (spanLabels != null) (" " + spanLabels[i]) else ""
+      f: opts->name + " " + "Predictors" + suffix + ".csv"
+      
+      // Execute export and return file info
+      hisExportInternal(predictors, s, dir + f).merge({contentType:"predictors"})
+    end
+    
+    // Formatting function for point records
+    formatRecForJSON: rec => removeNull({
+        id:     rec->id,
+        dis:    rec->dis,
+        column: rec->dis,
+        unit:   rec["unit"],
+        minVal: rec["minVal"],
+        maxVal: rec["maxVal"],
+        defVal: rec["defVal"]
+      })
+    
+    // Update predictor and target lists
+    colOrder: ["id", "dis", "column", "unit", "minVal", "maxVal", "defVal"]
+    predictors = predictors.map(formatRecForJSON).toGrid.reorderCols(colOrder)
+    targets = targets.map(formatRecForJSON).toGrid.reorderCols(colOrder)
+    
+    // Create structure for JSON conversion
+    configuration: {
+      dates:          {start:span.start, end:span.end},
+      predictors:     predictors.toRecList,
+      targets:        targets.toRecList,
+      files:          targetFiles.addAll(predictorFiles).toRecList,
+      export_options: opts.remove("preview")
+    }
+    
+    // Write JSON
+    if (not opts->preview) do
+      jsonOpts: {noEscapeUnicode}.set(opts->jsonVersion, marker())
+      configuration.ioWriteJson(dir + (opts->name + " " + "Config.json"), jsonOpts)
+    end
+    
+    // Return
+    configuration
+  end
+---
+name:wattileImportModels
+doc:
+  Imports Wattile model(s) located in 'dirs' and optionally commits them to the database. 'dirs' may be a single uri, a list of uris, a list of anything that can be parsed to a uri, or a grid with a 'uri' column.
+  
+  Each imported model is a dict with tags:
+  
+  - 'wattileModel'
+  - 'predictors': Grid of predictor metadata (see [documentation]`ext-nrelWattile::doc#modelRecords`)
+  - 'targetRef': Optional ref to the prediction target (if available from 'predictors_config.json')
+  - 'uri': Path to the model directory
+  
+  **TO DO:** Defx 'uri'; Defs for the others
+  
+  Returns a list of model records.
+  
+  Options
+  -------
+  
+  Import behavior can be modified by control options passed via 'opts':
+  
+  - 'checked': Boolean; throw an error for invalid models (default = 'true')
+  - 'commit': Boolean; if 'true' commits the model records to the database (default = 'false')
+  - 'conflict': Action on conflicts; one of "skip", "overwrite", "duplicate", or "error" (default = "error")
+    
+  The 'checked', and 'commit' options may be also be passed as markers, with 'x' equivalent to 'x:true' and '-x' equivalent to 'x:false'.
+  
+  Conflicts
+  ---------
+    
+  Conflicts with existing 'wattileModel' records (matched by 'uri') are handled based on the 'conflict' option:
+    
+    - skip: Skip import
+    - overwrite: Merge imported metadata onto existing record, overwriting it
+    - duplicate: Create a new 'wattileModel' record with duplicate 'uri'
+    - error: Throw error
+  
+  Model Validation
+  ----------------
+  
+  This function performs some basic validation on imported models, including checking directory integrity and verifying the existence of the model's predictor and target points within the SkySpark cluster. Behavior on encountering an invalid model depends on the 'checked' option:
+  
+  - If 'checked' is 'true', throws an error when an invalid model is encountered
+  - If 'checked' is 'false', silently skips invalid models
+  
+func
+overridable
+src:
+  (dirs, opts:{}) => do
+    // Default options
+    opts = {checked:true, conflict:"error"}.merge(opts)
+    
+    // T/F options
+    opts = opts.set("checked", opts.has("checked") and opts["checked"] != false)
+    opts = opts.set("commit",  opts.has("commit")  and opts["commit"]  != false)
+    
+    // Action on conflict
+    opts = opts.set("conflict", opts->conflict.lower)
+    if (not opts->conflict.in(["skip", "overwrite", "duplicate", "error"])) do
+      throw "'conflict' option must be one of: \"skip\", \"overwrite\", \"duplicate\""
+    end
+    
+    // Coerce dirs to Uri list
+    if (dirs.isGrid) do
+      dirs = dirs.colToList("uri")
+    else do
+      dirs = dirs.toList
+    end
+    
+    // Map dirs to records
+    models: dirs.map() dir => do
+      // Check directory uri
+      if (not dir.isUri) dir = dir.parseUri(opts->checked)
+  
+      // Validate directory integrity
+      try do
+        if (dir.isNull) throw "Model directory is null"
+        if (ioInfo(dir).missing("dir")) throw "`" + dir.toStr + "` is not a directory"
+        if (ioDir(dir).isEmpty) throw "Model directory `" + dir.toStr + "` is empty or does not exist"
+        if (ioDir(dir).find(f => f->name=="predictors_config.json", false) == null) throw "Model directory `" + dir.toStr + "` is missing \"predictors_config.json\""
+      catch (ex) do
+        if (opts->checked) throw (ex)
+        return null // Invalid model
+      end
+      
+      // Model dict
+      model: {wattileModel, uri:dir}
+      
+      // Build up model dict with predictors and targets
+      try do
+        // Read config
+        predictorConfig: ioReadJson(dir + "predictors_config.json", {v3}) // TO DO: Update to v4 encoding
+        
+        // Temporary: if config is a list, assume it is a list of predictors
+        if (predictorConfig.isList) do
+          predictorConfig = {predictors:predictorConfig}
+        end
+        
+        // Get predictors
+        predictors: predictorConfig->predictors
+          .map() p => do
+            // Check for required tags
+            if (p.missing("id")) throw "Predictor " + p.dis + " is missing 'id' key."
+            if (p.missing("column")) throw "Predictor " + p.dis + " is missing 'column' key."
+            
+            // Default 'dis' to "description" key value, if present
+            if (p.missing("dis") and p.has("description")) do
+              p = p.set("dis", p->description)
+            end
+            
+            // Resolve ID and return
+            p.set("id", wattileResolveRef(p["id"]))
+          end
+          
+        // Predictors grid
+        predictors = predictors.toGrid.keepCols(["id", "dis", "column", "unit", "minVal", "maxVal", "defVal"])
+        
+        // Store to model
+        model = model.set("predictors", predictors)
+        
+        // Get target
+        if (predictorConfig.has("target")) do
+          // Target ref
+          if (predictorConfig->target.missing("id")) throw "Target " + predictorConfig->target.dis + " is missing 'id' key."
+          targetRef: wattileResolveRef(predictorConfig->target->id)
+          
+          // Store to model
+          model = model.set("targetRef", targetRef)
+          
+          // Target's original units
+          if (predictorConfig->target.has("unit")) do
+            // Store to model
+            model = model.set("unit", predictorConfig->target->unit)
+          end
+        end
+        
+        // TO DO: Also import model name as 'dis'? From where?
+        // TO DO: Range cleaning options?
+        
+      catch (ex) do
+        if (opts->checked) throw (ex)
+        return null // Invalid model
+      end
+  
+      // Return
+      model
+    end
+    
+    // Resolve existing models
+    models = models
+      .findAll(m => m != null)
+      .map() m => do
+        // Existing?
+        existingModel: read(wattileModel and uri==m->uri, false)
+        
+        // No existing model
+        if (existingModel == null) return m
+              
+        // Handle existing model
+        if (opts->conflict == "overwrite") return existingModel.merge(m)
+        if (opts->conflict == "duplicate") return m
+        if (opts->conflict == "skip") return null
+        
+        // "error" or any other case
+        throw "'wattileModel' for uri `" + m->uri + "` already exists."
+      end
+     
+    // Commit?
+    if (opts->commit) do
+      diffs: models.map() m => if (m.has("id")) do
+        diff(m, m.remove("id"))
+      else do
+        diff(null, m, {add})
+      end
+      models = diffs.commit
+    end
+    
+    // Return models
+    return models
+  end
+---
 name:wattileReadHis
 doc:
-  Predictive analytics helper function; reads history for **recs** and converts into a history grid compatible with a prediction call to Python via 'taskPredAnalyticsDocker()'
+  Predictive analytics helper function; reads history for **recs** and converts into a history grid compatible with a prediction call to Python via 'wattilePythonTask()'
   
   **TO DO:** Refine documentation. Should this be 'nodoc'?
 func
+overridable
 src:
-  // Helper function to read history and prepare it for conversion to Python dataframe
-  (recs, span) => do
-    // Convert to record list
-    recs = recs.toRecList
-    
-    // Read histories and define column names (via 'dis' tags)
-    data: recs.map() p => do
+  (predictors, span) => do
+    // Read histories by ID
+    data: xq()
+      .xqDefine("readspan", span)
+      .xqReadByIdsList(predictors.toRecIdList)
+      .xqMap("p => {id:p->id, hisGrid:p.toRecId.hisRead(readspan, {-limit})}")
+      .xqExecute
+  
+    // Process histories
+    data = data.map() dict => do
+      // Get corresponding predictor
+      p: predictors.find(x => x->id == dict->id)
+      
+      // Extract history grid
+      history: dict->hisGrid
+      
+      // Check for empty history
+      if (history.hisClip.isEmpty) throw "No history found for point \"" + p.dis + "\" and timespan " + format(span)
+      
       // Get column 'dis'
       // This defines CSV export column names, but doesn't affect Python data frame column names
       if (p.has("dis")) do
         // Explicit pre-defined 'dis' (if available)
         dis: p["dis"]
-      
+  
       else do
-        // Extract 'dis' from point metadata in database
-        dis: p.toRecId.readById.dis
+        // Extract 'dis' from history metadata
+        dis: history.colMeta("v0").dis
       end
       
-      // TO DO: Explicit column renaming required? Column name mapping performed on Python side?
-      
-      // Read history
-      history: p.toRecId.hisRead(span) // toRecId() here prevents some hisRead() misfires
-      
-      // Check for empty history
-      if (history.isEmpty) throw "No history found for input \"" + dis + "\" and timespan " + format(span)
+      // Enforce units
+      if (p.has("unit")) do
+        history = history.hisMap(v => if (v.isNA) v else v.to(p->unit))
+      end
       
       // Fix column 'dis' tag, and return
       history.addColMeta("v0", {dis:dis, -disMacro})
     end
-    
+  
     // Combine data, clip to window, and return
     hisJoin(data).hisClip
+  end
+---
+name:wattileResolveRef
+doc:
+  Resolve 'refStr' into a valid `haystack::Ref`. If the Ref does not exist in the cluster, throw an error.
+  
+  Handles any of the following:
+  
+  - With or without leading '@'
+  - With or without trailing description
+  - Absolute or relative
+  - (Relative refs) with or without '"r:"' prefix
+func
+overridable
+src:
+  (refStr) => do
+    // Convert to string
+    refStr = refStr.toStr
+    
+    // Trim 'dis' (if any)
+    refStr = refStr.split(" ")[0]
+    
+    // Special cases: relative Refs
+    if (refStr.startsWith("r:")) refStr = refStr[2..-1]
+    if (refStr.startsWith("@r:")) refStr = refStr[3..-1]
+    
+    // Parse
+    ref: parseRef(refStr)
+    
+    // Resolve
+    try do
+      // Try local database
+      ref = ref.toRec.toRecId
+    catch (ex) do
+      // Try cluster via XQuery
+      refList: xq().xqReadByIdsList(ref.toList).xqExecute
+  
+      // Record not found
+      if (refList.isEmpty) do
+        throw "Ref " + ref.toStr + " cannot be found anywhere in the cluster."
+      else if (refList.size > 1) do
+        throw "Ref " + ref.toStr + " did not resolve to a unique record!" // This shouldn't ever happen
+      else do
+        ref = refList.first.toRecId
+      end
+    end
+  end
+---
+name:wattileSyncHis
+doc:
+  Syncs Wattile prediction history for 'points' and 'span', using the specified Wattile Python 'task'.
+  
+  - 'points' may be anything accepted by `toRecIdList`.
+  - 'span' may be anything acceptable by `toSpan`, or 'null' to sync all history after each point's 'hisEnd'.
+  
+  Each point must define valid tags `wattileModelRef` and `wattileQuantile`.
+  
+  **TO DO:** Defs for wattileModelRef, wattileQuantile
+  
+  Sync
+  ----
+  
+  The default sync behavior is:
+  
+  1. Execute a prediction call to each Wattile model for the specified 'span'.
+  2. Extract the 'horizon = 0' prediction data for each point based on its 'wattileQuantile'.
+  3. Drop any predictions with timestamps prior to each point's 'hisEnd'.
+  4. Write new prediction history is written persistently to each point.
+  
+  This behavior can be modified via 'opts'; see below.
+  
+  Options
+  -------
+  
+  Sync behavior can be modified by control options passed via 'opts':
+  
+  - 'forecast': Boolean; also write forecast data (default = 'false')
+  - 'forecastOnly': Boolean; *only* write forecast data (default = 'false')
+  - 'overwrite': Boolean; allows existing history to be overwritten (ignores 'hisEnd') (default = 'false')
+  
+  All options may be also be passed as markers, with 'x' equivalent to 'x:true' and '-x' equivalent to 'x:false'. If 'forecastOnly = true', the 'forecast' option is ignored. To avoid warning spam in the logs, the 'overwrite' option also sets the `hisWrite` 'noWarn' flag. 
+  
+  Forecasts
+  ---------
+  
+  If either the 'forecast' or the 'forecastOnly' option is 'true', then forecasts (data for 'horizon > 0' in Wattile results) are also written to each point. Only the forecast from the most recent Wattile prediction in the results (most recent value of the 'timestamp' column) is written. Forecasts are always written transiently by setting the `hisWrite` 'forecast' flag.
+func
+overridable
+src:
+  (points, task, span:null, opts:{}) => do
+    // Default options
+    opts = {}.merge(opts)
+    
+    // T/F options
+    opts = opts.set("overwrite",     opts.has("overwrite")     and opts["overwrite"]     != false)
+    opts = opts.set("forecast",      opts.has("forecast")      and opts["forecast"]      != false)
+    opts = opts.set("forecastOnly",  opts.has("forecastOnly")  and opts["forecastOnly"]  != false)
+    
+    // If span is unspecified, never overwrite
+    if (span == null) opts = opts.set("overwrite", false)
+    
+    // What to write
+    writeHistory: not opts->forecastOnly
+    writeForecast: opts->forecast or opts->forecastOnly
+  
+    // Points
+    points = points.toRecIdList.readByIds
+    
+    // Models
+    models: points.map() p => do
+      // Validate model ref
+      if (p.missing("wattileModelRef")) throw "Point " + p.dis + "is missing 'wattileModelRef'"
+      
+      // Get model
+      return p->wattileModelRef.toRec
+    end
+    models = models.unique("id")
+    
+    // Span
+    if (span != null) span = span.toSpan
+    
+    // Iterate models
+    models.flatMap() model => do
+      // Get associated points
+      pointsLocal: points.findAll(p => p->wattileModelRef == model->id)
+      
+      // Prediction span
+      if (span == null) do
+        // Only keep points with 'hisEnd'
+        pointsLocal = pointsLocal.findAll(p => p.has("hisEnd"))
+        
+        // Oldest 'hisEnd' to now
+        spanLocal: (pointsLocal.toGrid.colToList("hisEnd").sort.first)..now()
+        
+      else do
+        // User-specified span
+        spanLocal: span
+      end
+      
+      // Call predict
+      data: task.taskSend({action: "predict", model:model, span:spanLocal}).futureGet()
+      
+      // Write prediction history
+      if (writeHistory) do
+        pointsLocal.each() p => do
+          // Filter predictions
+          history: data
+            .findAll(row => row->horizon == 0 and row->quantile == p->wattileQuantile)
+            .keepCols(["pred_ts", "pred_val"])
+            .reorderCols(["pred_ts", "pred_val"])
+            .renameCol("pred_ts", "ts")
+          
+          // Convert units
+          history = history.hisMap(v => if (v.isNA) v else v.to(p["unit"]))
+          
+          // Write data
+          if (opts->overwrite) do
+            // All history
+            hisWrite(history, p, {noWarn})
+          else if (p.missing("hisEnd")) do
+            // All history
+            hisWrite(history, p)
+          else do
+            // New history only
+            history
+              .hisFindAll((val, ts) => ts > p->hisEnd)
+              .hisWrite(p)
+          end
+        end
+      end
+  
+      // Write prediction forecast
+      if (writeForecast) do
+        pointsLocal.each() p => do
+          // Most recent prediction timestamp
+          mostRecentTime: data.colToList("timestamp").sortr.first
+          
+          // Filter predictions
+          history: data
+            .findAll(row => row->timestamp == mostRecentTime and row->horizon > 0 and row->quantile == p->wattileQuantile)
+            .keepCols(["pred_ts", "pred_val"])
+            .reorderCols(["pred_ts", "pred_val"])
+            .renameCol("pred_ts", "ts")
+          
+          // Convert units
+          history = history.hisMap(v => if (v.isNA) v else v.to(p["unit"]))
+                    
+          // Write data
+          hisWrite(history, p, {forecast})
+        end
+      end
+  
+    end
+  
+    // History sync then return updated point records
+    hisSync()
+    points.toRecIdList.readByIds
   end
