@@ -126,7 +126,7 @@ Extension App Note].
    Alternatively, if you are not using a flag tag:
    
    ```
-   ioReadTrio(`io/x.trio`).map(rec => diff(null, rec), {add})).commit
+   ioReadTrio(`io/x.trio`).map(rec => diff(null, rec, {add})).commit
    ```
 
 6. To verify that the functions were successfully imported, ceck the *Code* app
