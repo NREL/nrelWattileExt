@@ -421,7 +421,7 @@ src:
           end
           
         // Predictors grid
-        predictors = predictors.toGrid.keepCols(["id", "dis", "column", "unit"])
+        predictors = predictors.toGrid.keepCols(["id", "dis", "column", "unit", "minVal", "maxVal", "defVal"])
         
         // Store to model
         model = model.set("predictors", predictors)
@@ -443,6 +443,7 @@ src:
         end
         
         // TO DO: Also import model name as 'dis'? From where?
+        // TO DO: Range cleaning options?
         
       catch (ex) do
         if (opts->checked) throw (ex)
@@ -502,7 +503,7 @@ src:
       .xqMap("p => {id:p->id, hisGrid:p.toRecId.hisRead(readspan, {-limit})}")
       .xqExecute
   
-    //Process histories
+    // Process histories
     data = data.map() dict => do
       // Get corresponding predictor
       p: predictors.find(x => x->id == dict->id)

@@ -99,11 +99,13 @@ weatherStation
 ---
 id:@278f79c0-8d722bdb "Synthetic Weather Station Global Horizontal Irradiance"
 chartGroup:irradiance
+defVal:0W/m²_irr
 disMacro:"\$weatherStationRef \$navName"
 global
 his
 irradiance
 kind:Number
+minVal:0W/m²_irr
 navName:Global Horizontal Irradiance
 point
 sensor
@@ -130,11 +132,13 @@ weatherStationRef:@278f790b-44057bc3 "Synthetic Weather Station"
 ---
 id:@278f79c0-4fe536b4 "Synthetic Weather Station Direct Normal Irradiance"
 chartGroup:irradiance
+defVal:0W/m²_irr
 direct
 disMacro:"\$weatherStationRef \$navName"
 his
 irradiance
 kind:Number
+minVal:0W/m²_irr
 navName:Direct Normal Irradiance
 point
 sensor
@@ -145,11 +149,13 @@ weatherStationRef:@278f790b-44057bc3 "Synthetic Weather Station"
 ---
 id:@278f79c0-03da5abc "Synthetic Weather Station Diffuse Horizontal Irradiance"
 chartGroup:irradiance
+defVal:0W/m²_irr
 diffuse
 disMacro:"\$weatherStationRef \$navName"
 his
 irradiance
 kind:Number
+minVal:0W/m²_irr
 navName:Diffuse Horizontal Irradiance
 point
 sensor
@@ -192,9 +198,11 @@ weatherStationRef:@278f790b-44057bc3 "Synthetic Weather Station"
 ---
 id:@278f79c0-c1f48e5c "Synthetic Weather Station Wind Speed"
 chartGroup:wind_speed
+defVal:0mph
 disMacro:"\$weatherStationRef \$navName"
 his
 kind:Number
+minVal:0mph
 navName:"Wind Speed"
 point
 sensor
