@@ -13,7 +13,7 @@ doc:
   
   In the filenames, '<<Name>>' is the data set name (which defaults to the name of 'dir'; see *Options*) and '<<Date Range>>' is the date range spanned by each file (with format dependent on the export options selected).
   
-  Each CSV file contains a 'Timestamp' column followed by one or more numeric value columns corresponding to either the predictor or the target points. Timestamps are exported in [ISO 8601]`https://en.wikipedia.org/wiki/ISO_8601` standard format, including time zone offset and time zone name. Only numeric and Boolean data types are supported; Booleans are converted to 0/1 on export.
+  Each CSV file contains a 'Timestamp' column followed by one or more numeric value columns corresponding to either the predictor or the target points. Timestamps are exported in [ISO 8601]`https://en.wikipedia.org/wiki/ISO_8601` standard format, including time zone offset and time zone name. Only numeric data are supported.
   
   The JSON configuration file consists of a single top-level dictionary containing five nested dictionaries:
   
@@ -64,7 +64,7 @@ doc:
   Rollup
   ------
   
-  If the 'interval' option is provided, data are rolled up at the specified interval using `hisRollupAuto`. (Boolean points are instead rolled up using `durTrue`, then normalized by the interval to obtain a fractional value between 0 and 1.) Rollup occurs prior to interpolation. 
+  If the 'interval' option is provided, data are rolled up at the specified interval using `hisRollupAuto`. Rollup occurs prior to interpolation. 
   
   Interpolation
   -------------
@@ -180,11 +180,6 @@ src:
         // Numeric
         if (point["kind"] == "Number") do
           return src.hisRollupAuto(opts->interval)
-        
-        // Boolean
-        else if (point["kind"] == "Bool") do
-          hisRollup(src, durTrue, opts->interval)
-            .hisMap(v => (v.to(opts->interval) / opts->interval).as(""))
         
         // Unsupported
         else do
