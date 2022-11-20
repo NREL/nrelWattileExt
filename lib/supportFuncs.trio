@@ -55,16 +55,16 @@ doc:
   Range Cleaning
   --------------
   
-  If 'clean' is 'true', values outside the range `[minVal, maxVal]`, as defined by the point's `minVal` and `maxVal` tags, are removed from the data set. (Missing 'minVal' and 'maxVal' tags imply permissible minimum and maximum values of negative and positive infinity, respectively.)
+  If 'clean' is 'true', values outside the range '[minVal, maxVal]', as defined by the point's `minVal` and `maxVal` tags, are removed from the data set. (Missing 'minVal' and 'maxVal' tags imply permissible minimum and maximum values of negative and positive infinity, respectively.)
   
-  If the 'defVal' option) is provided, values removed are replaced with 'defVal'; otherwise, they are replaced with 'Null'. Optionally, 'defVal' may be passed as a tag on each point; 'defVal' point tags override the global option on a per-point basis.
+  If the 'defVal' option is provided, values removed are replaced with 'defVal'; otherwise, they are replaced with 'Null'. Optionally, 'defVal' may be passed as a tag on each point; 'defVal' point tags override the global option on a per-point basis.
   
   Range cleaning is performed prior to rollup and/or interpolation.
   
   Rollup
   ------
   
-  If the 'interval' option is provided, all data are rolled up at the specified interval using `hisRollupAuto`. Rollup occurs prior to interpolation.
+  If the 'interval' option is provided, data are rolled up at the specified interval using `hisRollupAuto`. (Boolean points are instead rolled up using `durTrue`, then normalized by the interval to obtain a fractional value between 0 and 1.) Rollup occurs prior to interpolation. 
   
   Interpolation
   -------------
@@ -75,8 +75,8 @@ overridable
 src:
   (predictors, targets, span, dir, opts:{}) => do
     // Argument parsing
-    predictors = predictors.toRecList
-    targets = targets.toRecList
+    predictors = predictors.toRecList.sort((a, b) => a.dis <=> b.dis)
+    targets = targets.toRecList.sort((a, b) => a.dis <=> b.dis)
     span = span.toSpan
     if (dir.isStr) dir = parseUri(dir)
     
@@ -89,49 +89,212 @@ src:
     opts = opts.set("interpolate", opts.has("interpolate") and opts["interpolate"] != false)
     opts = opts.set("preview",     opts.has("preview")     and opts["preview"]     != false)
     
-    // Verify JSON version option
-    if (not opts["jsonVersion"].in(["v3", "v4"])) do
-      throw "'jsonVersion' option must be either \"v3\" or \"v4\"."
-    end
-    
     // Verify directory
     if (not dir.uriIsDir) throw "'dir' `" + dir.toStr + "` is not a directory."
     
     // Default name = name of directory
     if (opts.missing("name")) opts = opts.set("name", dir.uriName)
     
+    // Verify JSON version option
+    if (not opts["jsonVersion"].in(["v3", "v4"])) do
+      throw "'jsonVersion' option must be either \"v3\" or \"v4\"."
+    end
     
+    // Time splitting
+    if (opts["splitBy"] == null) do
+      spans: [span]
+      spanLabels: null
+    else if (opts->splitBy == "day") do
+      spans: span.toDayList(true)
+      spanLabels: spans.map(s => s.start.format("YYYY-MM-DD"))
+    else if (opts->splitBy == "week") do
+      spans: span.toWeekList(true)
+      spanLabels: spans.map(s => s.start.format("'Week of 'YYYY-MM-DD"))
+    else if (opts->splitBy == "month") do
+      spans: span.toMonthList(true)
+      spanLabels: spans.map(s => s.start.format("YYYY-MM"))
+    else if (opts->splitBy == "year") do
+      spans: span.toYearList(true)
+      spanLabels: spans.map(s => s.start.format("YYYY"))
+    else do
+      throw "'splitBy' option must be one of: \"day\", \"week\", \"month\", \"year\"."
+    end
     
+    // Standardize column labels for output
+    setColumnLabel: point => do
+      // Column description
+      dis: point.dis
+      
+      // Append units?
+      if (opts->appendUnits and point.has("unit")) do
+        dis = dis + " (" + point->unit + ")"
+      end
+      
+      // Store 'dis' = column label on export
+      point.merge({dis:dis, column:dis, -disMacro})
+    end
+    targets = targets.map(setColumnLabel)
+    predictors = predictors.map(setColumnLabel)
     
-    // TO DO: ALL THE MIDDLE STUFF...
+    // Internval function to perform range cleaning only if 'clean' option is set
+    if (opts->clean) do
+      hisRangeCleanInternal: (src, point) => do
+        // Get default value
+        if (point.has("defVal")) do
+          defVal: point->defVal
+        else if (opts.has("defVal")) do
+          defVal: opts->defVal
+        else do
+          defVal: null
+        end
+        
+        // Get range
+        minVal: if (point.has("minVal")) point->minVal else negInf()
+        maxVal: if (point.has("maxVal")) point->minVal else posInf() 
+        
+        // No default value: remove
+        if (defVal == null) do
+          src = src.hisFindAll((v, t) => v != na() and v >= minVal.to(v) and v <= maxVal.to(v)) 
+          
+        // Default value: replace
+        else do
+          src = src.hisMap() (v, t) => do
+            if (v == na() or (v >= minVal.to(v) and v <= maxVal.to(v))) do
+              return v
+            else do
+              return defVal
+            end
+          end
+        end
+        
+        // Return
+        return src
+      end
+    else do
+      hisRangeCleanInternal: (src, point) => src
+    end
     
+    // Internal function to roll up history only if 'interval' option is set
+    if (opts.has("interval")) do
+      hisRollupInternal: (src, point) => do
+        // Numeric
+        if (point["kind"] == "Number") do
+          return src.hisRollupAuto(opts->interval)
+        
+        // Boolean
+        else if (point["kind"] == "Bool") do
+          hisRollup(src, durTrue, opts->interval)
+            .hisMap(v => (v.to(opts->interval) / opts->interval).as(""))
+        
+        // Unsupported
+        else do
+          throw "Unsupported kind \"" + p["kind"] + "\" for point: " + p.dis
+        end
+      end
+    else do
+      hisRollupInternal: (src, point) => src
+    end
     
+    // Internal function to interpolate history only if 'interpolate' option is set
+    if (opts.has("interpolate")) do
+      hisInterpolateInternal: (src) => src.hisInterpolate
+    else do
+      hisInterpolateInternal: (src) => src
+    end
     
+    // Internal function to convert and remove units
+    hisHandleUnits: (src, point) => do
+      src.hisMap() (v, t) => if (v.isNumber) v.to(point["unit"]).as("") else v
+    end
+  
+    // Internal function to read, process, and export history for specific time range
+    hisExportInternal: (points, spanLocal, file) => do
+      // Read data via Xquery
+      data: xq()
+        .xqDefine("span", spanLocal)
+        .xqReadByIdsList(points.toRecIdList)
+        .xqMap("p => {id:p->id, hisGrid:p.toRecId.hisRead(span, {-limit})}")
+        .xqExecute
+  
+      // Range cleaning, unit handling, and rollup
+      data = data.map() dict => do
+        // Which point?
+        p: points.find(x => x->id == dict->id)
+        
+        // Extract history grid
+        history: dict->hisGrid
+        
+        // Set up column label for CSV output
+        history = history.addColMeta("v0", {dis:p->dis, -disMacro})
+        
+        // Range clean, rollup, remove units
+        history
+          .hisRangeCleanInternal(p)
+          .hisRollupInternal(p)
+          .hisHandleUnits(p)
+      end
+      
+      // Join, interpolate, clip
+      data = data
+        .hisJoin
+        .hisInterpolateInternal
+        .hisClip
+        .addColMeta("ts", {dis:"Timestamp"})
+      
+      // Write to file
+      if (not opts->preview) data.ioWriteCsv(file)
+      
+      // Return file metadata
+      return {
+        filename: file.uriName,
+        start:    spanLocal.start,
+        end:      spanLocal.end
+      }
+    end
     
+    // Export targets
+    targetFiles: spans.map() (s, i) => do
+      // Output filename
+      suffix: if (spanLabels != null) (" " + spanLabels[i]) else ""
+      f: opts->name + " " + "Targets" + suffix + ".csv"
+      
+      // Execute export and return file info
+      hisExportInternal(targets, s, dir + f).merge({contentType:"targets"})
+    end
     
-    
-    
-    
+    // Export predictors
+    predictorFiles: spans.map() (s, i) => do
+      // Output filename
+      suffix: if (spanLabels != null) (" " + spanLabels[i]) else ""
+      f: opts->name + " " + "Predictors" + suffix + ".csv"
+      
+      // Execute export and return file info
+      hisExportInternal(predictors, s, dir + f).merge({contentType:"predictors"})
+    end
     
     // Formatting function for point records
-    // TO DO: Update this
-    /*
-    formatRecForJSON: rec => {
+    formatRecForJSON: rec => removeNull({
+        id:     rec->id,
+        dis:    rec->dis,
         column: rec->dis,
-        id: rec->id, // Will be prefixed by "r:" in JSON v3
-        description: rec->description,
-        unit: rec->unit,
-        pv: pv
-      }
-    */
-  
+        unit:   rec["unit"],
+        minVal: rec["minVal"],
+        maxVal: rec["maxVal"],
+        defVal: rec["defVal"]
+      })
+    
+    // Update predictor and target lists
+    colOrder: ["id", "dis", "column", "unit", "minVal", "maxVal", "defVal"]
+    predictors = predictors.map(formatRecForJSON).toGrid.reorderCols(colOrder)
+    targets = targets.map(formatRecForJSON).toGrid.reorderCols(colOrder)
+    
     // Create structure for JSON conversion
     configuration: {
       dates:          {start:span.start, end:span.end},
-      predictors:     predictors,//.map(formatRecForJSON),
-      targets:        targets,//.map(formatRecForJSON),
-      //files:          files.toRecList,
-      export_options: opts
+      predictors:     predictors.toRecList,
+      targets:        targets.toRecList,
+      files:          targetFiles.addAll(predictorFiles).toRecList,
+      export_options: opts.remove("preview")
     }
     
     // Write JSON
