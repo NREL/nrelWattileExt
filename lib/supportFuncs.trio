@@ -665,14 +665,23 @@ src:
     if (span != null) span = span.toSpan
   
     // Iterate models
-    models.flatMap() model => do
+    modifiedPoints: models.toRecList.flatMap() model => do
       // Get associated points
       pointsLocal: points.findAll(p => p->wattileModelRef == model->id)
-  
+      
       // Prediction span
       if (span == null) do
         // Only keep points with 'hisEnd'
         pointsLocal = pointsLocal.findAll(p => p.has("hisEnd"))
+        
+        // Ensure not empty
+        if (pointsLocal.isEmpty) do
+          logWarn(
+            {name:"nrelWattile", funcTrace:"wattileSyncHis"},
+            "No points with 'hisEnd' tag found for model " + model.dis + "; skipping."
+          )
+          return []
+        end
   
         // Oldest 'hisEnd' to now
         spanLocal: (pointsLocal.toGrid.colToList("hisEnd").sort.first)..now()
@@ -734,10 +743,12 @@ src:
           hisWrite(history, p, {forecast})
         end
       end
-  
+      
+      // Return modified points
+      pointsLocal.toRecList
     end
   
-    // History sync then return updated point records
+    // History sync then return modified point records
     hisSync()
-    points.toRecIdList.readByIds
+    modifiedPoints.flatten.toRecIdList.readByIds
   end
