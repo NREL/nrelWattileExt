@@ -616,7 +616,7 @@ doc:
   - 'forecastOnly': Boolean; *only* write forecast data (default = 'false')
   - 'overwrite': Boolean; allows existing history to be overwritten (ignores 'hisEnd') (default = 'false')
   
-  All options may be also be passed as markers, with 'x' equivalent to 'x:true' and '-x' equivalent to 'x:false'. If 'forecastOnly = true', the 'forecast' option is ignored. To avoid warning spam in the logs, the 'overwrite' option also sets the `hisWrite` 'noWarn' flag. 
+  All options may be also be passed as markers, with 'x' equivalent to 'x:true' and '-x' equivalent to 'x:false'. If 'forecastOnly = true', the 'forecast' option is ignored. To avoid warning spam in the logs, the 'overwrite' option also sets the `hisWrite` 'noWarn' flag.
   
   Forecasts
   ---------
@@ -628,37 +628,37 @@ src:
   (points, task, span:null, opts:{}) => do
     // Default options
     opts = {}.merge(opts)
-    
+  
     // T/F options
     opts = opts.set("overwrite",     opts.has("overwrite")     and opts["overwrite"]     != false)
     opts = opts.set("forecast",      opts.has("forecast")      and opts["forecast"]      != false)
     opts = opts.set("forecastOnly",  opts.has("forecastOnly")  and opts["forecastOnly"]  != false)
-    
+  
     // If span is unspecified, never overwrite
     if (span == null) opts = opts.set("overwrite", false)
-    
+  
     // What to write
     writeHistory: not opts->forecastOnly
     writeForecast: opts->forecast or opts->forecastOnly
   
     // Points
     points = points.toRecIdList.readByIds
-    
+  
     // Models
     models: points.map() p => do
       // Validate model ref
       if (p.missing("wattileModelRef")) throw "Point " + p.dis + "is missing 'wattileModelRef'"
-      
+  
       // Get model
       return p->wattileModelRef.toRec
     end
     models = models.unique("id")
-    
+  
     // Span
     if (span != null) span = span.toSpan
-    
+  
     // Iterate models
-    models.flatMap() model => do
+    modifiedPoints: models.toRecList.flatMap() model => do
       // Get associated points
       pointsLocal: points.findAll(p => p->wattileModelRef == model->id)
       
@@ -667,17 +667,26 @@ src:
         // Only keep points with 'hisEnd'
         pointsLocal = pointsLocal.findAll(p => p.has("hisEnd"))
         
+        // Ensure not empty
+        if (pointsLocal.isEmpty) do
+          logWarn(
+            {name:"nrelWattile", funcTrace:"wattileSyncHis"},
+            "No points with 'hisEnd' tag found for model " + model.dis + "; skipping."
+          )
+          return []
+        end
+  
         // Oldest 'hisEnd' to now
         spanLocal: (pointsLocal.toGrid.colToList("hisEnd").sort.first)..now()
-        
+  
       else do
         // User-specified span
         spanLocal: span
       end
-      
+  
       // Call predict
       data: task.taskSend({action: "predict", model:model, span:spanLocal}).futureGet()
-      
+  
       // Write prediction history
       if (writeHistory) do
         pointsLocal.each() p => do
@@ -687,10 +696,10 @@ src:
             .keepCols(["pred_ts", "pred_val"])
             .reorderCols(["pred_ts", "pred_val"])
             .renameCol("pred_ts", "ts")
-          
+  
           // Convert units
           history = history.hisMap(v => if (v.isNA) v else v.to(p["unit"]))
-          
+  
           // Write data
           if (opts->overwrite) do
             // All history
@@ -712,25 +721,27 @@ src:
         pointsLocal.each() p => do
           // Most recent prediction timestamp
           mostRecentTime: data.colToList("timestamp").sortr.first
-          
+  
           // Filter predictions
           history: data
             .findAll(row => row->timestamp == mostRecentTime and row->horizon > 0 and row->quantile == p->wattileQuantile)
             .keepCols(["pred_ts", "pred_val"])
             .reorderCols(["pred_ts", "pred_val"])
             .renameCol("pred_ts", "ts")
-          
+  
           // Convert units
           history = history.hisMap(v => if (v.isNA) v else v.to(p["unit"]))
-                    
+  
           // Write data
           hisWrite(history, p, {forecast})
         end
       end
-  
+      
+      // Return modified points
+      pointsLocal.toRecList
     end
   
-    // History sync then return updated point records
+    // History sync then return modified point records
     hisSync()
-    points.toRecIdList.readByIds
+    modifiedPoints.flatten.toRecIdList.readByIds
   end
