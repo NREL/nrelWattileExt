@@ -743,8 +743,9 @@ src:
         spanLocal: spanLocalStart..spanLocalEnd
         
         // Skip if up-to-date
-        if (spanLocalStart > spanLocalEnd) return []
-  
+        if (spanLocalStart > spanLocalEnd) do
+          return []
+        end
       else do
         // User-specified span
         spanLocal: span
