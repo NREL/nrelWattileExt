@@ -38,9 +38,18 @@ src:
       predUnit: null
     end
     
+    // Prediction timezone: from model, fallback to target
+    if (model.has("tz")) do
+      predTz: model->tz
+    else if (model.has("targetRef")) do
+      predTz: readById(model->targetRef)["tz"]
+    else do
+      predTz: null
+    end
+  
     // Load model config
     modelConfig: ioReadJson(model->uri + "configs.json")
-    
+  
     // Verify model configuration
     if (modelConfig->learning_algorithm->use_case != "prediction") do
       throw "Model " + model.dis + " is not configured for prediction. Did you run model setup?"
@@ -77,7 +86,7 @@ src:
       session
         .pyDefine("prediction_time", spanStart)
         .pyExec("prediction_time = pandas.Timestamp(prediction_time)")
-        .pyExec("input_start, input_end = model.get_input_window_for_output_time(prediction_time)")  
+        .pyExec("input_start, input_end = model.get_input_window_for_output_time(prediction_time)")
     else do
       // Multiple timesteps
       session
@@ -89,9 +98,11 @@ src:
         .pyExec("input_end = model.get_input_window_for_output_time(last_prediction_time)[1]")
     end
     readSpan: session.pyEval("input_start")..session.pyEval("input_end")
-    
+  
     // Read and prepare data: see wattileReadHis()
     data: wattileReadHis(predictors, readSpan)
+      .map() row => row.set("ts", row->ts.toTimeZone("UTC")) // Temporary; will be handled by Wattile in the future
+    
     
     // Get column name specification for SkySpark -> Python conversion
     getSkySparkColName: (column) => name(column)
@@ -134,14 +145,24 @@ src:
       .pyExec("tidy_results['pred_ts'] = tidy_results['timestamp'] + tidy_results['horizon']")
       .pyExec("tidy_results['horizon'] = tidy_results['horizon'].map(lambda h: h.total_seconds())")
       .pyEval("tidy_results")
-    
-    // Add units
+  
+    // Post-processing
     results = results.map() row => do
       // Units for horizon
       row = row.set("horizon", row->horizon.as("s"))
       
       // Units for predicted values
       row = row.set("pred_val", row->pred_val.as(predUnit))
+      
+      // Handle timezone
+      if (predTz != null) do
+        row = row
+          .set("timestamp", row->timestamp.toTimeZone(predTz))
+          .set("pred_ts", row->pred_ts.toTimeZone(predTz))
+      end
+      
+      // Return
+      return row
     end
     
     // Reorder columns and return results
