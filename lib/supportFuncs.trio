@@ -631,7 +631,7 @@ doc:
   - 'points' may be anything accepted by `toRecIdList`.
   - 'span' may be anything acceptable by `toSpan`, or Null to sync all history after each point's 'hisEnd'.
   
-  Each point must define valid tags `wattileModelRef` and `wattileQuantile`.
+  Each point must define valid tags `wattileModelRef` and `wattileQuantile`. If run within a task, will report task progress.
   
   **TO DO:** Defs for wattileModelRef, wattileQuantile
   
@@ -714,6 +714,9 @@ src:
   
     // Iterate models
     modifiedPoints: models.toRecList.flatMap() model => do
+      // Task progress
+      taskProgress({model:model.dis})
+      
       // Get associated points
       pointsLocal: points.findAll(p => p->wattileModelRef == model->id)
   
