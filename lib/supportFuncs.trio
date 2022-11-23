@@ -737,15 +737,15 @@ src:
         // Oldest 'hisEnd' to present, limited by 'limit' if applicable
         spanLocalStart: pointsLocal.toGrid.colToList("hisEnd").sort.first
         spanLocalEnd: now().toTimeZone(spanLocalStart.tz)
+        
         if (opts.has("limit") and spanLocalEnd > (spanLocalStart + opts->limit)) do
           spanLocalEnd = (spanLocalStart + opts->limit)
+        else if (spanLocalStart > spanLocalEnd) do
+          return [] // Skip if up-to-date
         end
+        
         spanLocal: spanLocalStart..spanLocalEnd
         
-        // Skip if up-to-date
-        if (spanLocalStart > spanLocalEnd) do
-          return []
-        end
       else do
         // User-specified span
         spanLocal: span
