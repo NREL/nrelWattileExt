@@ -74,7 +74,7 @@ src:
     else do
       predUnit: null
     end
-    
+  
     // Prediction timezone: from model, fallback to target
     if (model.has("tz")) do
       predTz: model->tz
@@ -94,7 +94,7 @@ src:
     if (not model->uri.toStr.endsWith(modelConfig->data_output->exp_dir[1..-1])) do
       throw "Model " + model.dis + " directory mismatch. Did you run model setup?"
     end
-    
+  
     // Load history read options
     if (model.has("opts")) do
       readOpts: model->opts
@@ -120,7 +120,7 @@ src:
       .pyExec("configs_path = pathlib.Path(model_dir) / 'configs.json'")
       .pyExec("""with open(configs_path, 'r', encoding='utf-8') as f:
                      configs = json.load(f)""")
-    
+  
     // Instantiate model
     session.pyExec("model = " + modelClass + "(configs)")
   
@@ -128,30 +128,30 @@ src:
     if (spanStart == spanEnd) do
       // Single timestep
       session
-        .pyDefine("prediction_time", spanStart)
+        .pyDefine("prediction_time", spanStart.toTimeZone("UTC"))
         .pyExec("prediction_time = pandas.Timestamp(prediction_time)")
         .pyExec("input_start, input_end = model.get_input_window_for_output_time(prediction_time)")
     else do
       // Multiple timesteps
       session
-        .pyDefine("first_prediction_time", spanStart)
-        .pyDefine("last_prediction_time", spanEnd)
+        .pyDefine("first_prediction_time", spanStart.toTimeZone("UTC"))
+        .pyDefine("last_prediction_time", spanEnd.toTimeZone("UTC"))
         .pyExec("first_prediction_time = pandas.Timestamp(first_prediction_time)")
         .pyExec("last_prediction_time = pandas.Timestamp(last_prediction_time)")
         .pyExec("input_start = model.get_input_window_for_output_time(first_prediction_time)[0]")
         .pyExec("input_end = model.get_input_window_for_output_time(last_prediction_time)[1]")
     end
     readSpan: session.pyEval("input_start")..session.pyEval("input_end")
-  
+    
     // Read and prepare data: see wattileReadHis()
     data: wattileReadHis(predictors, readSpan, readOpts)
       .map() row => row.set("ts", row->ts.toTimeZone("UTC")) // Temporary; will be handled by Wattile in the future
-    
+  
     // Adjust model config start/end times (Temporary? Avoids dropping data.)
     session
       .pyExec("configs['data_input']['start_time'] = input_start.isoformat()")
       .pyExec("configs['data_input']['end_time'] = input_end.isoformat()")
-    
+  
     // Get column name specification for SkySpark -> Python conversion
     getSkySparkColName: (column) => name(column)
     getPythonColName: (column) => do
@@ -198,17 +198,17 @@ src:
     results = results.map() row => do
       // Units for horizon
       row = row.set("horizon", row->horizon.as("s"))
-      
+  
       // Units for predicted values
       row = row.set("pred_val", row->pred_val.as(predUnit))
-      
+  
       // Handle timezone
       if (predTz != null) do
         row = row
           .set("timestamp", row->timestamp.toTimeZone(predTz))
           .set("pred_ts", row->pred_ts.toTimeZone(predTz))
       end
-      
+  
       // Return
       return row
     end
