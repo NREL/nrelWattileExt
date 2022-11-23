@@ -48,14 +48,15 @@ doc:
   - 'jsonVersion': Str; either 'v3' or 'v4'; see [Json]`docHaystack::Json` (Default = 'v3')
   - 'name': Str; data set name to use in output files (Default = name of 'dir')
   - 'preview': Boolean; if 'true' then return the data set configuration JSON without writing any files (Default = false)
+  - 'rollup': Boolean; see `wattileReadHis` (Default = false)
   - 'splitBy': Str; One of "day", "week", "month", or "year" indicating the interval at which to split the data files (Default = no splitting)
   
-  The 'appendUnits', 'clean', 'interpolate', and 'preview' options may be also be passed as markers, with 'x' equivalent to 'x:true' and '-x' equivalent to 'x:false'. 
+  The 'appendUnits', 'clean', 'interpolate', 'preview', and 'rollup' options may be also be passed as markers, with 'x' equivalent to 'x:true' and '-x' equivalent to 'x:false'.
   
   Pre-Processing
   --------------
   
-  Options 'clean', 'defVal', 'interpolate', and 'interval' control data pre-processing prior to export. See `wattileReadHis` for each option's effect.
+  Options 'clean', 'defVal', 'interpolate', 'interval', and 'rollup' control data pre-processing prior to export. See `wattileReadHis` for each option's effect.
   
   Note: interpolation is performed for each exported CSV file independently, therefore, the set of timestamps in target and predictor CSV file for the same date range are not guaranteed to be the same.
 func
@@ -67,27 +68,35 @@ src:
     targets = targets.toRecList.sort((a, b) => a.dis <=> b.dis)
     span = span.toSpan
     if (dir.isStr) dir = parseUri(dir)
-    
+  
     // Default options
-    opts = {appendUnits:false, clean:false, interpolate:false, jsonVersion:"v3", preview:false}.merge(opts)
-    
+    opts = {
+      appendUnits: false,
+      clean:       false,
+      interpolate: false,
+      jsonVersion: "v3",
+      preview:     false,
+      rollup:      false
+    }.merge(opts)
+  
     // T/F options
     opts = opts.set("appendUnits", opts.has("appendUnits") and opts["appendUnits"] != false)
     opts = opts.set("clean",       opts.has("clean")       and opts["clean"]       != false)
     opts = opts.set("interpolate", opts.has("interpolate") and opts["interpolate"] != false)
     opts = opts.set("preview",     opts.has("preview")     and opts["preview"]     != false)
-    
+    opts = opts.set("rollup",      opts.has("rollup")      and opts["rollup"]      != false)
+  
     // Verify directory
     if (not dir.uriIsDir) throw "'dir' `" + dir.toStr + "` is not a directory."
-    
+  
     // Default name = name of directory
     if (opts.missing("name")) opts = opts.set("name", dir.uriName)
-    
+  
     // Verify JSON version option
     if (not opts["jsonVersion"].in(["v3", "v4"])) do
       throw "'jsonVersion' option must be either \"v3\" or \"v4\"."
     end
-    
+  
     // Time splitting
     if (opts["splitBy"] == null) do
       spans: [span]
@@ -107,45 +116,45 @@ src:
     else do
       throw "'splitBy' option must be one of: \"day\", \"week\", \"month\", \"year\"."
     end
-    
+  
     // Standardize column labels for output
     setColumnLabel: point => do
       // Column description
       dis: point.dis
-      
+  
       // Append units?
       if (opts->appendUnits and point.has("unit")) do
         dis = dis + " (" + point->unit + ")"
       end
-      
+  
       // Store 'dis' = column label on export
       point.merge({dis:dis, column:dis, -disMacro})
     end
     targets = targets.map(setColumnLabel)
     predictors = predictors.map(setColumnLabel)
-    
+  
     // Internal function to remove units
     hisRemoveUnits: (hisGrid) => do
       hisGrid.hisMap() (v, t) => if (v.isNumber) v.as("") else v
     end
-    
+  
     // Options to pass through to wattileReadHis()
-    readOpts: opts.findAll((val, key) => key.in(["clean", "defVal", "interpolate", "interval"]))
+    readOpts: opts.findAll((val, key) => key.in(["clean", "defVal", "interpolate", "interval", "rollup"]))
   
     // Internal function to read, process, and export history for specific time range
     hisExportInternal: (points, spanLocal, file) => do
       // Read and pre-process data
       data: wattileReadHis(points, spanLocal, readOpts)
-      
+  
       // Remove units
       data = data.hisRemoveUnits
-      
+  
       // Timestamp column label
       data = data.addColMeta("ts", {dis:"Timestamp"})
-      
+  
       // Write to file
       if (not opts->preview) data.ioWriteCsv(file)
-      
+  
       // Return file metadata
       return {
         filename: file.uriName,
@@ -153,27 +162,27 @@ src:
         end:      spanLocal.end
       }
     end
-    
+  
     // Export targets
     targetFiles: spans.map() (s, i) => do
       // Output filename
       suffix: if (spanLabels != null) (" " + spanLabels[i]) else ""
       f: opts->name + " " + "Targets" + suffix + ".csv"
-      
+  
       // Execute export and return file info
       hisExportInternal(targets, s, dir + f).merge({contentType:"targets"})
     end
-    
+  
     // Export predictors
     predictorFiles: spans.map() (s, i) => do
       // Output filename
       suffix: if (spanLabels != null) (" " + spanLabels[i]) else ""
       f: opts->name + " " + "Predictors" + suffix + ".csv"
-      
+  
       // Execute export and return file info
       hisExportInternal(predictors, s, dir + f).merge({contentType:"predictors"})
     end
-    
+  
     // Formatting function for point records
     formatRecForJSON: rec => removeNull({
         id:     rec->id,
@@ -184,16 +193,16 @@ src:
         maxVal: rec["maxVal"],
         defVal: rec["defVal"]
       })
-    
+  
     // Organize predictor and target lists
     pointColOrder: ["id", "dis", "column", "unit", "minVal", "maxVal", "defVal"]
     predictors = predictors.map(formatRecForJSON).toGrid.reorderCols(pointColOrder)
     targets = targets.map(formatRecForJSON).toGrid.reorderCols(pointColOrder)
-    
+  
     // Organize file list
     fileColOrder: ["filename", "contentType", "start", "end"]
     files: targetFiles.addAll(predictorFiles).toGrid.reorderCols(fileColOrder)
-    
+  
     // Create structure for JSON conversion
     configuration: {
       dates:          {start:span.start, end:span.end},
@@ -202,20 +211,20 @@ src:
       files:          files.toRecList,
       export_options: opts.remove("preview")
     }
-    
+  
     // Write JSON
     if (not opts->preview) do
       jsonOpts: {noEscapeUnicode}.set(opts->jsonVersion, marker())
       configuration.ioWriteJson(dir + (opts->name + " " + "Config.json"), jsonOpts)
     end
-    
+  
     // Return
     configuration
   end
 ---
 name:wattileImportModels
 doc:
-  Imports Wattile model(s) located in 'dirs' and optionally commits them to the database. 'dirs' may be a single uri, a list of uris, a list of anything that can be parsed to a uri, or a grid with a 'uri' column.
+  Imports records for Wattile model(s) located in 'dirs' and optionally commits them to the database. 'dirs' may be a single uri, a list of uris, a list of anything that can be parsed to a uri, or a grid with a 'uri' column.
   
   Each imported model is a dict with tags:
   
@@ -226,7 +235,7 @@ doc:
   
   **TO DO:** Defx 'uri'; Defs for the others
   
-  Returns a list of model records.
+  Does not populate optional tags 'dis', 'tz', or 'opts' (as this information is not currently included with Wattile models). Returns a list of model records.
   
   Options
   -------
@@ -403,11 +412,12 @@ doc:
   Data pre-processing is controlled by the following options, passed via 'opts':
   
   - 'clean': Boolean; if 'true' then data will be range-cleaned prior to export by removing values outside the range defined by each point's `minVal` and `maxVal` tags (Default = false)
-  - 'defVal': Number or NA; governs range cleaning behavior; see below (Default = none) 
+  - 'defVal': Number or NA; governs range cleaning behavior; see below (Default = none)
   - 'interpolate': Boolean; if 'true' then data will be interpolated prior to export (Default = false)
-  - 'interval': Number; optional interval at which to roll up the data (Default = none)
+  - 'interval': Number; optional interval at which to interpolate and/or roll up the data (Default = none)
+  - 'rollup': Boolean; if 'true' then a history rollup will be applied prior to export (Default = false)
   
-  The 'clean' and 'interpolate' options may be also be passed as markers, with 'x' equivalent to 'x:true' and '-x' equivalent to 'x:false'.
+  The 'clean', 'interpolate', and 'rollup' options may be also be passed as markers, with 'x' equivalent to 'x:true' and '-x' equivalent to 'x:false'. If 'rollup' is 'true', then 'interval' must also be specified.
   
   Range Cleaning
   --------------
@@ -416,17 +426,19 @@ doc:
   
   If the 'defVal' option is provided, values removed are replaced with 'defVal'; otherwise, they are replaced with Null. Optionally, 'defVal' may be passed as a tag on each point; 'defVal' point tags override the global option on a per-point basis.
   
-  Range cleaning is performed prior to rollup and/or interpolation.
-  
-  Rollup
-  ------
-  
-  If the 'interval' option is provided, data are rolled up at the specified interval using `hisRollupAuto`. Rollup occurs prior to interpolation. 
+  Range cleaning is performed prior to interpolation and/or rollup.
   
   Interpolation
   -------------
   
-  If 'interpolate' is 'true', the entire history grid is interpolated, following SkySpark's normal interpolation rules.
+  If 'interpolate' is 'true', the entire history grid is interpolated via `hisInterpolate`, following SkySpark's normal interpolation rules. If the 'interval' option is also specified, then additional interpolation is performed *selectively* to ensure each interval of data contains at least one value for each input point. Interpolation is performed prior to rollup.
+  
+  
+  Rollup
+  ------
+  
+  If the 'rollup' option is provided, data are rolled up at the specified 'interval' using `hisRollupAuto`.
+  
 func
 overridable
 src:
@@ -434,14 +446,15 @@ src:
     // Argument parsing
     points = points.toRecList
     span = span.toSpan
-    
+  
     // Default options
     opts = {clean:false, interpolate:false}.merge(opts)
-    
+  
     // T/F options
     opts = opts.set("clean",       opts.has("clean")       and opts["clean"]       != false)
     opts = opts.set("interpolate", opts.has("interpolate") and opts["interpolate"] != false)
-      
+    opts = opts.set("rollup",      opts.has("rollup")      and opts["rollup"]      != false)
+  
     // Internal function: Perform range cleaning (only if 'clean' option is set)
     if (opts->clean) do
       hisRangeCleanInternal: (hisGrid, point) => do
@@ -453,15 +466,15 @@ src:
         else do
           defVal: null
         end
-        
+  
         // Get range
         minVal: if (point.has("minVal")) point->minVal else negInf()
-        maxVal: if (point.has("maxVal")) point->minVal else posInf() 
-        
+        maxVal: if (point.has("maxVal")) point->minVal else posInf()
+  
         // No default value: remove
         if (defVal == null) do
-          hisGrid = hisGrid.hisFindAll((v, t) => v != na() and v >= minVal.to(v) and v <= maxVal.to(v)) 
-          
+          hisGrid = hisGrid.hisFindAll((v, t) => v != na() and v >= minVal.to(v) and v <= maxVal.to(v))
+  
         // Default value: replace
         else do
           hisGrid = hisGrid.hisMap() (v, t) => do
@@ -472,37 +485,56 @@ src:
             end
           end
         end
-        
+  
         // Return
         return hisGrid
       end
     else do
       hisRangeCleanInternal: (hisGrid, point) => hisGrid
     end
-    
-    // Internal function: Roll up history (only if 'interval' option is set)
-    if (opts.has("interval")) do
-      hisRollupInternal: (hisGrid, point) => do
-        // Numeric
-        if (point["kind"] == "Number") do
-          return hisGrid.hisRollupAuto(opts->interval)
+  
+    // Internal function: Interpolate intervals with no data (only if 'interpolate' option is set)
+    if (opts->interpolate and opts.has("interval")) do
+      hisInterpolateAtIntervalInternal: (hisGrid) => do
+        // Find gaps (intervals with no data)
+        gaps: hisGrid
+          .hisRollup(count, opts->interval)
+          .hisFindAll((val, ts) => val == 0)
+          .keepCols(["ts"])
         
-        // Unsupported
-        else do
-          throw "Unsupported kind \"" + p["kind"] + "\" for point: " + p.dis
-        end
+        // Interpolate gaps
+        hisJoin([hisGrid, gaps]).hisInterpolate
       end
     else do
-      hisRollupInternal: (hisGrid, point) => hisGrid
+      hisInterpolateAtIntervalInternal: (hisGrid) => hisGrid
     end
     
-    // Internal function: Interpolate history (only if 'interpolate' option is set)
-    if (opts.has("interpolate")) do
+    // Internal function: Final history interpolation (only if 'interpolate' option is set)
+    if (opts->interpolate) do
       hisInterpolateInternal: (hisGrid) => hisGrid.hisInterpolate
     else do
       hisInterpolateInternal: (hisGrid) => hisGrid
     end
-    
+  
+    // Internal function: Roll up history (only if 'interval' option is set)
+    if (opts.has("interval")) do
+      hisRollupInternal: (hisGrid) => do
+        // Data type
+        kind: hisGrid.col("v0").meta["kind"]
+        
+        // Numeric
+        if (kind == "Number") do
+          return hisGrid.hisRollupAuto(opts->interval)
+  
+        // Unsupported
+        else do
+          throw "Unsupported kind \"" + kind + "\" for point: " + hisGrid.col("v0").meta.dis
+        end
+      end
+    else do
+      hisRollupInternal: (hisGrid) => hisGrid
+    end
+  
     // Internal function: Convert units
     hisConvertUnits: (hisGrid, point) => do
       hisGrid.hisMap() (v, t) => if (v.isNumber) v.to(point["unit"]) else v
@@ -514,7 +546,7 @@ src:
       .xqReadByIdsList(points.toRecIdList)
       .xqMap("p => {id:p->id, hisGrid:p.toRecId.hisRead(readspan, {-limit})}")
       .xqExecute
-    
+  
     // Process histories
     data = data.map() dict => do
       // Get corresponding point
@@ -522,20 +554,21 @@ src:
       
       // Extract history grid
       history: dict->hisGrid
-      
+  
       // Check for empty history
       if (history.hisClip.isEmpty) throw "No history found for point \"" + p.dis + "\" and span " + format(span)
-      
+  
       // Preserve original 'dis', if applicable
       // Needed to enforce column names on CSV export
       if (p.has("dis")) do
         history = history.addColMeta("v0", {dis:p->dis, -disMacro})
       end
-      
+  
       // Range clean, rollup, enforce units, set column label
       history = history
         .hisRangeCleanInternal(p)
-        .hisRollupInternal(p)
+        .hisInterpolateAtIntervalInternal
+        .hisRollupInternal
         .hisConvertUnits(p)
     end
   
@@ -650,16 +683,20 @@ src:
   
     // Points
     points = points.toRecIdList.readByIds
+    
+    // Validate points
+    points.each() p => do
+      // Required tags
+      if (p.missing("wattileModelRef")) throw "Point \"" + p.dis + "\" is missing 'wattileModelRef' tag"
+      if (p.missing("wattileQuantile")) throw "Point \"" + p.dis + "\" is missing 'wattileQuantile' tag"
+      if (p.missing("his")) throw "Point \"" + p.dis + "\" is missing 'his' tag"
+      if (p.missing("tz")) throw "Point \"" + p.dis + "\" is missing 'tz' tag"
+    end
   
     // Models
-    models: points.map() p => do
-      // Validate model ref
-      if (p.missing("wattileModelRef")) throw "Point " + p.dis + "is missing 'wattileModelRef'"
-  
-      // Get model
-      return p->wattileModelRef.toRec
-    end
-    models = models.unique("id")
+    models: points
+      .map(p => p->wattileModelRef.toRec)
+      .unique("id")
   
     // Span
     if (span != null) span = span.toSpan
@@ -703,10 +740,13 @@ src:
             .keepCols(["pred_ts", "pred_val"])
             .reorderCols(["pred_ts", "pred_val"])
             .renameCol("pred_ts", "ts")
-  
+          
+          // Convert timezone
+          history = history.map(row => row.set("ts", row->ts.toTimeZone(p->tz)))
+          
           // Convert units
           history = history.hisMap(v => if (v.isNA) v else v.to(p["unit"]))
-  
+          
           // Write data
           if (opts->overwrite) do
             // All history
@@ -736,6 +776,9 @@ src:
             .reorderCols(["pred_ts", "pred_val"])
             .renameCol("pred_ts", "ts")
   
+          // Convert timezone
+          history = history.map(row => row.set("ts", row->ts.toTimeZone(p->tz)))
+          
           // Convert units
           history = history.hisMap(v => if (v.isNA) v else v.to(p["unit"]))
   

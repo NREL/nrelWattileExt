@@ -24,11 +24,11 @@ src:
   (session, model, span) => do
     // Get predictors
     predictors: model->predictors
-    
+  
     // Prediction time span start/end
     spanStart: span.toSpan.start
     spanEnd: span.toSpan.end
-    
+  
     // Prediction units: from model, fallback to target
     if (model.has("unit")) do
       predUnit: model->unit
@@ -58,6 +58,13 @@ src:
       throw "Model " + model.dis + " directory mismatch. Did you run model setup?"
     end
     
+    // Load history read options
+    if (model.has("opts")) do
+      readOpts: model->opts
+    else do
+      readOpts: {} // Use defaults
+    end
+  
     // Get model architecture
     // TO DO: It would be nice to load model objects directly so I don't have
     // to decipher the architecture version here...
@@ -69,7 +76,7 @@ src:
     else do
       throw "Unsupported model architecture version: " + arch
     end
-    
+  
     // Load model configuration
     session
       .pyDefine("model_dir", modelConfig->data_output->exp_dir)
@@ -79,7 +86,7 @@ src:
     
     // Instantiate model
     session.pyExec("model = " + modelClass + "(configs)")
-    
+  
     // Determine read time span for prediction
     if (spanStart == spanEnd) do
       // Single timestep
@@ -100,9 +107,13 @@ src:
     readSpan: session.pyEval("input_start")..session.pyEval("input_end")
   
     // Read and prepare data: see wattileReadHis()
-    data: wattileReadHis(predictors, readSpan)
+    data: wattileReadHis(predictors, readSpan, readOpts)
       .map() row => row.set("ts", row->ts.toTimeZone("UTC")) // Temporary; will be handled by Wattile in the future
     
+    // Adjust model config start/end times (Temporary? Avoids dropping data.)
+    session
+      .pyExec("configs['data_input']['start_time'] = input_start.isoformat()")
+      .pyExec("configs['data_input']['end_time'] = input_end.isoformat()")
     
     // Get column name specification for SkySpark -> Python conversion
     getSkySparkColName: (column) => name(column)
@@ -114,7 +125,7 @@ src:
     columnSpec: data
       .gridColsToDict(getSkySparkColName, getPythonColName)
       .findAll(v => v != null)
-    
+  
     // Load data into Python
     session
       .pyDefine("predictor_grid", data)
@@ -126,14 +137,14 @@ src:
       .pyDefine("column_specification", columnSpec)
       .pyExec("predictor_data_frame = predictor_data_frame.rename(columns=column_specification)")
       .pyExec("predictor_data_frame[configs['data_input']['target_var']] = -999") // Temporary; prevents dropping rows
-    
+  
     // TO DO: Should be able to remove the placeholder target var
-    
+  
     // Prep data and run prediction
     session
       .pyExec("train_df, val_df = prep_for_rnn(configs, predictor_data_frame)")
       .pyExec("results = run_model(configs, train_df, val_df)")
-    
+  
     // Return tidy results:
     //   1. Convert to Pandas series (with multi-index)
     //   2. Convert to Pandas data frame (still with multi-index)
@@ -164,12 +175,9 @@ src:
       // Return
       return row
     end
-    
+  
     // Reorder columns and return results
-    return results
-      .reorderCols(["timestamp", "horizon", "quantile", "pred_ts", "pred_val"])
-    
-    // NOTE: pyEval() closses the Python session unless the session is running in a task
+    results.reorderCols(["timestamp", "horizon", "quantile", "pred_ts", "pred_val"])
   end
 ---
 name:wattilePythonModelSetup
