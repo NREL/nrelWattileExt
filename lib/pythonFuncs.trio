@@ -1,3 +1,40 @@
+name:wattilePythonEventCleanup
+func
+nodoc
+overridable
+src:
+  (session, model) => do
+    // Temporary: remove event logs to prevent accumulation
+    // Eventually, this should be fixed in Wattile itself
+    
+    // Get local directory uri from model record
+    uri: (model.toRec)["uri"]
+    
+    // Convert absolute to relative Uri; see wattilPythonModelSetup()
+    if (uri.toStr.startsWith("/")) uri = uriPath(uri)[2..-1].pathToUri.uriPlusSlash
+    
+    // List event files
+    eventFiles: ioDir(uri)
+      .findAll(f => f->name.startsWith("events.out.tfevents."))
+      .colToList("name")
+    
+    // No files to remove?
+    if (eventFiles.isEmpty) return "No event files to delete."
+    
+    // Use Python to remove files
+    session
+      .pyExec("import os")
+      .pyDefine("model_dir", "/" + uri.toStr)
+      .pyDefine("event_files", eventFiles)
+      .pyExec("event_file_paths = list(map(lambda f: pathlib.Path(model_dir) / f, event_files))")
+      .pyExec("""for f in event_file_paths:
+                   if os.path.isfile(f):
+                     os.remove(f)""")
+  
+    // Return number of files removed
+    session.pyEval("'Deleted ' + str(len(event_file_paths)) + ' event files.'")
+  end
+---
 name:wattilePythonInit
 func
 overridable

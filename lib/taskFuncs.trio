@@ -59,11 +59,15 @@ src:
     else if (action == "setup") do
       // Model setup: see wattilePythonModelSetup()
       return pySession.wattilePythonModelSetup(msg->model)
-    
+  
     // Predict
     else if (action == "predict") do
       // Call prediction: see wattilePythonModelPredict()
       return pySession.wattilePythonModelPredict(msg->model, msg->span)
+    
+    // Setup
+    else if (action == "cleanup") do
+      // Event cleanup: see wattilePythonEventCleanup()
+      return pySession.wattilePythonEventCleanup(msg->model)
     end
-  
   end
