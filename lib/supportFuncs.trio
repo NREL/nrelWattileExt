@@ -741,6 +741,9 @@ src:
           spanLocalEnd = (spanLocalStart + opts->limit)
         end
         spanLocal: spanLocalStart..spanLocalEnd
+        
+        // Skip if up-to-date
+        if (spanLocalStart > spanLocalEnd) return []
   
       else do
         // User-specified span
