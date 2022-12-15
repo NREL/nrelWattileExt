@@ -295,12 +295,12 @@ src:
       // Check directory uri
       if (not dir.isUri) dir = dir.parseUri(opts->checked)
   
-      // Validate directory integrity
+      // Verify directory integrity
       try do
         if (dir.isNull) throw "Model directory is null"
         if (ioInfo(dir).missing("dir")) throw "`" + dir.toStr + "` is not a directory"
         if (ioDir(dir).isEmpty) throw "Model directory `" + dir.toStr + "` is empty or does not exist"
-        if (ioDir(dir).find(f => f->name=="predictors_config.json", false) == null) throw "Model directory `" + dir.toStr + "` is missing \"predictors_config.json\""
+        if (ioDir(dir).find(f => f->name=="predictors_target_config.json", false) == null) throw "Model directory `" + dir.toStr + "` is missing \"predictors_target_config.json\""
       catch (ex) do
         if (opts->checked) throw (ex)
         return null // Invalid model
@@ -312,12 +312,7 @@ src:
       // Build up model dict with predictors and targets
       try do
         // Read config
-        predictorConfig: ioReadJson(dir + "predictors_config.json", {v3}) // TO DO: Update to v4 encoding
-  
-        // Temporary: if config is a list, assume it is a list of predictors
-        if (predictorConfig.isList) do
-          predictorConfig = {predictors:predictorConfig}
-        end
+        predictorConfig: ioReadJson(dir + "predictors_target_config.json", {v3}) // TO DO: Update to v4 encoding
   
         // Get predictors
         predictors: predictorConfig->predictors
