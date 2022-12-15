@@ -307,7 +307,7 @@ src:
       end
   
       // Model dict
-      model: {wattileModel, uri:dir}
+      model: {wattileModel, uri:dir, dis:uriBasename(dir)}
   
       // Build up model dict with predictors and targets
       try do
@@ -351,9 +351,6 @@ src:
             model = model.set("unit", predictorConfig->target->unit)
           end
         end
-  
-        // TO DO: Also import model name as 'dis'? From where?
-        // TO DO: Range cleaning options?
   
       catch (ex) do
         if (opts->checked) throw (ex)
