@@ -461,7 +461,7 @@ src:
   
         // Get range
         minVal: if (point.has("minVal")) point->minVal else negInf()
-        maxVal: if (point.has("maxVal")) point->minVal else posInf()
+        maxVal: if (point.has("maxVal")) point->maxVal else posInf()
   
         // No default value: remove
         if (defVal == null) do
