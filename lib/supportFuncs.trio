@@ -649,7 +649,7 @@ doc:
   - 'limit': Number; limits the length of time span to sync when 'span' is Null (default = None)
   - 'overwrite': Boolean; allows existing history to be overwritten (ignores 'hisEnd') (default = 'false')
   
-  Boolean options may be also be passed as markers, with 'x' equivalent to 'x:true' and '-x' equivalent to 'x:false'. If 'forecastOnly = true', the 'forecast' option is ignored. To avoid warning spam in the logs, the 'overwrite' option also sets the `hisWrite` 'noWarn' flag.
+  Boolean options may be also be passed as markers, with 'x' equivalent to 'x:true' and '-x' equivalent to 'x:false'. If 'forecastOnly = true', the 'forecast' option is ignored. To avoid warning spam in the logs, the 'overwrite' and 'hotPeriod' options also set the `hisWrite` 'noWarn' flag.
   
   Forecasts
   ---------
@@ -661,7 +661,7 @@ doc:
   
   If 'span' is Null, then the time span to sync is calculated for each set of points grouped by 'wattileModelRef'. For each group:
   
-  - Start of span: Equals the earliest 'hisEnd' among points in the group
+  - Start of span: Equals the earliest 'hisEnd' among points in the group or the beginning of the hot period, whichever is earlier
   - End of span: Equals the output of `now` minus 'delay' or the start of span plus 'limit' (when specified), whichever is earlier
   
   When this function is called from a task or job to keep predictions up-to-date, best practice is to specify 'limit' to avoid extremely large sync batches.
@@ -678,9 +678,8 @@ doc:
   
   The 'hotPeriod' option functions similarly to the hot period for rules: during the hot period the synced predictions are continuously refreshed. This is accomplished by clearing point history within the hot period immediately prior to writing the new predictions. Like 'delay', 'hotPeriod' is specified as a duration measuring backwards in time from the present. 
   
-  If 'span' is specified (non-Null), the 'hotPeriod' option is ignored.
+  Setting 'hotPeriod' greater than 'limit' will prevent predictions from being fully synced through the present. If 'span' is specified (non-Null), the 'hotPeriod' option is ignored.
 func
-overridable
 src:
   (points, task, span:null, opts:{}) => do
     // Default options
@@ -709,6 +708,23 @@ src:
       hotPeriod: opts->hotPeriod.to(1s)
     else do
       hotPeriod: null
+    end
+    
+    // Span limit
+    if (opts.has("limit")) do
+      spanLimit: opts->limit.to(1s)
+    else do
+      spanLimit: null
+    end
+    
+    // Warn if hot period > limit
+    if (hotPeriod != null and spanLimit != null and hotPeriod > spanLimit) do
+      logWarn(
+        {name:"nrelWattile", funcTrace:"wattileSyncHis"},
+        "Option 'hotPeriod' = " + format(hotPeriod) + 
+        " is greater than option 'limit' = " + format(spanLimit) +
+        "; synced predictions will lag real time."
+      )
     end
   
     // Error flag
@@ -762,14 +778,17 @@ src:
           return []
         end
   
-        // Start: oldest 'hisEnd'
+        // Start: oldest 'hisEnd' or hot period start, whichever is older
         spanLocalStart: pointsLocal.toGrid.colToList("hisEnd").sort.first
-        
+        if (hotPeriod != null and spanLocalStart >= (now() - hotPeriod)) do
+          spanLocalStart = (now() - hotPeriod)
+        end
+              
         // End: the present, minus the sync delay (if any)
         spanLocalEnd: now().toTimeZone(spanLocalStart.tz) - delay
   
         // Span limit
-        if (opts.has("limit") and spanLocalEnd > (spanLocalStart + opts->limit)) do
+        if (spanLimit != null and spanLocalEnd > (spanLocalStart + spanLimit)) do
           spanLocalEnd = (spanLocalStart + opts->limit)
         else if (spanLocalStart > spanLocalEnd) do
           return [] // Skip if up-to-date
@@ -839,7 +858,7 @@ src:
             end
             
             // Write
-            history.hisWrite(p)
+            history.hisWrite(p, {noWarn})
           else do 
             // New history only
             history
