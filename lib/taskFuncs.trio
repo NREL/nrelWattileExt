@@ -1,41 +1,71 @@
 name:wattilePythonTask
 doc:
-  Task function to handle Docker container interactions.
+  Task function to handle Wattile Python Docker container interactions. Intended to be run within a dedicated persistent task by passing action messages:
   
-  **TO DO:** Full documentation (not just scribbled notes)
+  - 'msg' must be a dictionary with an 'action' key (Str) and any action-specific inputs as key-value pairs.
+  - 'image' specifies the Docker image by name (Default = '"wattile"')
   
-  **msg** argument defines the actions to send the task; **image** specifies the Docker image to load for Python interaction.
+  Available actions are "init", "setup", "predict", and "cleanup", documented below. Each action uses a 'nodoc' helper function; source code is available in the **nrelWattileExt** [Git repository]`https://github.com/NREL/nrelWattileExt`.
   
-  Set up the task with this function as the 'taskExpr' like this...
+  Init
+  ----
   
-    (msg) => wattilePythonTask(msg, "name_of_image")
+  Initialize a Wattile Python session. This action is only required once and is performed automatically when the session starts.
   
-  I would have thought the following should also work, but it doesn't...
-  
-    wattilePythonTask(_, "name_of_image")
-  
-  Actions, specified via 'action' tag of **msg** as strings, are documented below.
+  - 'action': "init"
   
   Setup
   -----
   
-  Loads a model in preparation for prediction
+  Prepare a Wattile model for prediction. Must be run for each model before taking the "predict" action.
   
   - 'action': "setup"
-  - 'uri': Uri pointing to a trained model (directory)
+  - 'model': A Wattile model record
   
   Predict
   -------
   
-  Executes a prediction for a model previously loaded via the setup action
+  Executes a prediction for a Wattile model.
   
   - 'action': "predict"
-  - 'ts': Timestamp defining the beginning of prediction window
+  - 'model': A Wattile model record
+  - 'span': Time span for prediction
   
+  Returns a [tidy]`https://doi.org/10.18637/jss.v059.i10` grid with columns:
+  
+  - *timestamp*: Nominal prediction timestamp (time corresponding to *horizon* = 0)
+  - *horizon*: Time horizon of predicted value
+  - *quantile*: Quantile for predicted value
+  - *pred_ts*: Actual prediction timestamp; equals *timestamp* + *horizon*
+  - *pred_val*: Predicted value
+  
+  Each row of the grid represents the value of a unique '["timestamp", "quantile", "horizon"]' tuple from the underlying Wattile output XArray.
+  
+  Cleanup
+  -------
+  
+  Clean up prediction events and log files for a Wattile model.
+  
+  - 'action': "cleanup"
+  - 'model': A Wattile model record
+  
+  Task Record Configuration
+  -------------------------
+  
+  The task record for interacting with Wattile using this function should look like something this:
+  
+    task
+    wattileTask
+    dis: "Wattile Python Task"
+    taskExpr: wattilePythonTask
+  
+  To call with a custom Docker image, instead use:
+  
+    taskExpr: (msg) => wattilePythonTask(msg, "myWattileImage")
 func
 overridable
 src:
-  (msg, image) => do
+  (msg, image:"wattile") => do
     // Input checking
     if (image.isStr == false) throw "'image' must be a string specifying a Docker image."
     if (msg.isDict == false) throw "'msg' must be a dictionary."
@@ -65,7 +95,7 @@ src:
       // Call prediction: see wattilePythonModelPredict()
       return pySession.wattilePythonModelPredict(msg->model, msg->span)
   
-    // Setup
+    // Cleanup
     else if (action == "cleanup") do
       // Event cleanup: see wattilePythonEventCleanup()
       return pySession.wattilePythonEventCleanup(msg->model)

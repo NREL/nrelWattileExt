@@ -229,13 +229,12 @@ doc:
   Each imported model is a dict with tags:
   
   - 'wattileModel'
-  - 'predictors': Grid of predictor metadata (see [documentation]`ext-nrelWattile::doc#modelRecords`)
-  - 'targetRef': Optional ref to the prediction target (if available from 'predictors_config.json')
+  - 'wattilePredictors': Grid of predictor metadata (see [documentation]`ext-nrelWattile::doc#modelRecords`)
+  - 'wattileTargetRef': Optional ref to the prediction target (if available from 'predictors_target_config.json')
   - 'uri': Path to the model directory
+  - 'unit': Optional unit for the prediction output
   
-  **TO DO:** Defx 'uri'; Defs for the others
-  
-  Does not populate optional tags 'dis', 'tz', or 'opts' (as this information is not currently included with Wattile models). Returns a list of model records.
+  Does not populate optional tags 'dis', 'tz', or 'wattileOpts' (as this information is not currently included with Wattile models). Returns a list of model records.
   
   Options
   -------
@@ -334,16 +333,16 @@ src:
         predictors = predictors.toGrid.keepCols(["id", "dis", "column", "unit", "minVal", "maxVal", "defVal"])
   
         // Store to model
-        model = model.set("predictors", predictors)
+        model = model.set("wattilePredictors", predictors)
   
         // Get target
         if (predictorConfig.has("target")) do
           // Target ref
           if (predictorConfig->target.missing("id")) throw "Target " + predictorConfig->target.dis + " is missing 'id' key."
-          targetRef: wattileResolveRef(predictorConfig->target->id)
+          target: wattileResolveRef(predictorConfig->target->id)
   
           // Store to model
-          model = model.set("targetRef", targetRef)
+          model = model.set("wattileTargetRef", target)
   
           // Target's original units
           if (predictorConfig->target.has("unit")) do
@@ -432,7 +431,6 @@ doc:
   -------------
   
   If 'interpolate' is 'true', the entire history grid is interpolated via `hisInterpolate`, following SkySpark's normal interpolation rules. If the 'interval' option is also specified, then additional interpolation is performed *selectively* to ensure each interval of data contains at least one value for each input point. Interpolation is performed prior to rollup.
-  
   
   Rollup
   ------
@@ -545,7 +543,7 @@ src:
   
         // Unsupported
         else do
-          throw "Unsupported kind \"" + kind + "\" for point: " + hisGrid.col("v0").meta.dis
+          throw "Unsupported kind \"" + kind + "\" for point: " + hisGrid.col("v0").meta.recDisWithId
         end
       end
     else do
@@ -702,10 +700,11 @@ doc:
   Hot Period
   ----------
   
-  The 'hotPeriod' option functions similarly to the hot period for rules: during the hot period the synced predictions are continuously refreshed. This is accomplished by clearing point history within the hot period immediately prior to writing the new predictions. Like 'delay', 'hotPeriod' is specified as a duration measuring backwards in time from the present. 
+  The 'hotPeriod' option functions similarly to the hot period for rules: during the hot period the synced predictions are continuously refreshed. This is accomplished by clearing point history within the hot period immediately prior to writing the new predictions. Like 'delay', 'hotPeriod' is specified as a duration measuring backwards in time from the present.
   
   Setting 'hotPeriod' greater than 'limit' will prevent predictions from being fully synced through the present. If 'span' is specified (non-Null), the 'hotPeriod' option is ignored.
 func
+overridable
 src:
   (points, task, span:null, opts:{}) => do
     // Default options
@@ -728,26 +727,26 @@ src:
   
     // Sync delay
     delay: opts->delay.to(1s)
-    
+  
     // Hot period
     if (opts.has("hotPeriod")) do
       hotPeriod: opts->hotPeriod.to(1s)
     else do
       hotPeriod: null
     end
-    
+  
     // Span limit
     if (opts.has("limit")) do
       spanLimit: opts->limit.to(1s)
     else do
       spanLimit: null
     end
-    
+  
     // Warn if hot period > limit
     if (hotPeriod != null and spanLimit != null and hotPeriod > spanLimit) do
       logWarn(
         {name:"nrelWattile", funcTrace:"wattileSyncHis"},
-        "Option 'hotPeriod' = " + format(hotPeriod) + 
+        "Option 'hotPeriod' = " + format(hotPeriod) +
         " is greater than option 'limit' = " + format(spanLimit) +
         "; synced predictions will lag real time."
       )
@@ -755,7 +754,7 @@ src:
   
     // Error flag
     ok: true
-    
+  
     // Points
     points = points.toRecIdList.readByIds
   
@@ -809,7 +808,7 @@ src:
         if (hotPeriod != null and spanLocalStart >= (now() - hotPeriod)) do
           spanLocalStart = (now() - hotPeriod)
         end
-              
+  
         // End: the present, minus the sync delay (if any)
         spanLocalEnd: now().toTimeZone(spanLocalStart.tz) - delay
   
@@ -827,12 +826,12 @@ src:
         // User-specified span
         spanLocal: span
       end
-      
+  
       // Task progress
       if (inTask) do
         taskProgress({percent:progPct, model:model.dis, span:spanLocal.format})
       end
-      
+  
       // Call predict
       try do
         data: task.taskSend({action: "predict", model:model, span:spanLocal}).futureGet()
@@ -872,20 +871,20 @@ src:
           else if (hotPeriod != null) do
             // New history, using hot period
             hotPeriodStart: now() - hotPeriod
-            
+  
             // Remove existing point history in hot period; filter by hot period
             if (p->hisEnd >= hotPeriodStart) do
               p.hisRemove(hotPeriodStart..now())
               history = history.hisFindAll((val, ts) => ts >= hotPeriodStart)
-            
+  
             // No existing history in hot period; use hisEnd
             else do
               history = history.hisFindAll((val, ts) => ts > p->hisEnd)
             end
-            
+  
             // Write
             history.hisWrite(p, {noWarn})
-          else do 
+          else do
             // New history only
             history
               .hisFindAll((val, ts) => ts > p->hisEnd)
@@ -921,14 +920,14 @@ src:
       // Return modified points
       pointsLocal.toRecList
     end
-    
+  
     // Check for error
     if (not ok) do
       throw "Error(s) occurred during Wattile prediction; see log."
     else if (inTask) do
       taskProgress({percent:100%, message:"Complete"})
     end
-    
+  
     // History sync then return modified point records
     hisSync()
     modifiedPoints.flatten.toRecIdList.readByIds
