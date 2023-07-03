@@ -6,21 +6,21 @@ src:
   (session, model) => do
     // Temporary: remove event logs to prevent accumulation
     // Eventually, this should be fixed in Wattile itself
-    
+  
     // Get local directory uri from model record
     uri: (model.toRec)["uri"]
-    
+  
     // Convert absolute to relative Uri; see wattilPythonModelSetup()
     if (uri.toStr.startsWith("/")) uri = uriPath(uri)[2..-1].pathToUri.uriPlusSlash
-    
+  
     // List event files
     eventFiles: ioDir(uri)
       .findAll(f => f->name.startsWith("events.out.tfevents."))
       .colToList("name")
-    
+  
     // No files to remove?
     if (eventFiles.isEmpty) return "No event files to delete."
-    
+  
     // Use Python to remove files
     session
       .pyExec("import os")
@@ -49,7 +49,7 @@ src:
       .pyExec("import pandas")
       .pyExec("import numpy")
       .pyExec("import xarray")
-      .pyExec("from wattile.models import AlfaModel, BravoModel")
+      .pyExec("from wattile.models import ModelFactory")
       .pyExec("from wattile.buildings_processing import prep_for_rnn")
       .pyExec("from wattile.entry_point import create_input_dataframe, run_model")
   end
@@ -65,12 +65,30 @@ src:
     // Prediction time span start/end
     spanStart: span.toSpan.start
     spanEnd: span.toSpan.end
+    
+    // Resolve target
+    if (model.has("targetRef")) do
+      target: xq().xqReadByIdsList(model->targetRef).xqExecute
+      
+      // Verify target
+      if (target.isEmpty) do
+        logWarn(
+          {name:"nrelWattile", funcTrace:"wattilePythonModelPredict"},
+          "Target @" + model->targetRef.toStr + " cannot be found anywhere in the cluster; ignoring."
+        )
+        target = {}
+      else if (target.size > 1) do
+        throw "Target @" + model->targetRef.toStr + " did not resolve to a unique record!" // This shouldn't ever happen
+      else do
+        target = target.first
+      end
+    end
   
     // Prediction units: from model, fallback to target
     if (model.has("unit")) do
       predUnit: model->unit
     else if (model.has("targetRef")) do
-      predUnit: readById(model->targetRef)["unit"]
+      predUnit: target["unit"]
     else do
       predUnit: null
     end
@@ -79,20 +97,22 @@ src:
     if (model.has("tz")) do
       predTz: model->tz
     else if (model.has("targetRef")) do
-      predTz: readById(model->targetRef)["tz"]
+      predTz: target["tz"]
     else do
       predTz: null
     end
   
     // Load model config
     modelConfig: ioReadJson(model->uri + "configs.json")
-  
+    
     // Verify model configuration
     if (modelConfig->learning_algorithm->use_case != "prediction") do
-      throw "Model " + model.dis + " is not configured for prediction. Did you run model setup?"
+      throw "Model " + model.recDisWithId +
+        " is not configured for prediction. Did you run model setup?"
     end
     if (not model->uri.toStr.endsWith(modelConfig->data_output->exp_dir[1..-1])) do
-      throw "Model " + model.dis + " directory mismatch. Did you run model setup?"
+      throw "Model " + model.recDisWithId +
+        " directory mismatch. Did you run model setup?"
     end
   
     // Load history read options
@@ -101,19 +121,7 @@ src:
     else do
       readOpts: {} // Use defaults
     end
-  
-    // Get model architecture
-    // TO DO: It would be nice to load model objects directly so I don't have
-    // to decipher the architecture version here...
-    modelArch: modelConfig->learning_algorithm->arch_version
-    if (modelArch == "alfa") do
-      modelClass: "AlfaModel"
-    else if (modelArch == "bravo") do
-      modelClass: "BravoModel"
-    else do
-      throw "Unsupported model architecture version: " + arch
-    end
-  
+    
     // Load model configuration
     session
       .pyDefine("model_dir", modelConfig->data_output->exp_dir)
@@ -122,7 +130,7 @@ src:
                      configs = json.load(f)""")
   
     // Instantiate model
-    session.pyExec("model = " + modelClass + "(configs)")
+    session.pyExec("model = ModelFactory.create_model(configs)")
   
     // Determine read time span for prediction
     if (spanStart == spanEnd) do
@@ -142,16 +150,18 @@ src:
         .pyExec("input_end = model.get_input_window_for_output_time(last_prediction_time)[1]")
     end
     readSpan: session.pyEval("input_start")..session.pyEval("input_end")
-    
+  
     // Read and prepare data: see wattileReadHis()
     data: wattileReadHis(predictors, readSpan, readOpts)
-      .map() row => row.set("ts", row->ts.toTimeZone("UTC")) // Temporary; will be handled by Wattile in the future
-  
+     
     // Adjust model config start/end times (Temporary? Avoids dropping data.)
     session
       .pyExec("configs['data_input']['start_time'] = input_start.isoformat()")
       .pyExec("configs['data_input']['end_time'] = input_end.isoformat()")
-  
+      
+    // TO DO: Remove this once predict() handles it automatically
+    // (Tested 12/15/2022 with Wattile build from main: still needed)
+    
     // Get column name specification for SkySpark -> Python conversion
     getSkySparkColName: (column) => name(column)
     getPythonColName: (column) => do
@@ -174,14 +184,15 @@ src:
       .pyDefine("column_specification", columnSpec)
       .pyExec("predictor_data_frame = predictor_data_frame.rename(columns=column_specification)")
       .pyExec("predictor_data_frame[configs['data_input']['target_var']] = -999") // Temporary; prevents dropping rows
-  
-    // TO DO: Should be able to remove the placeholder target var
+    
+    // TO DO: Remove the placeholder target var once Wattile supports that
+    // (Tested 12/15/2022 with Wattile build from main: still needed)
   
     // Prep data and run prediction
     session
-      .pyExec("train_df, val_df = prep_for_rnn(configs, predictor_data_frame)")
-      .pyExec("results = run_model(configs, train_df, val_df)")
-  
+      .pyExec("_, val_df = prep_for_rnn(configs, predictor_data_frame)")
+      .pyExec("results = model.predict(val_df)")
+    
     // Return tidy results:
     //   1. Convert to Pandas series (with multi-index)
     //   2. Convert to Pandas data frame (still with multi-index)
@@ -193,7 +204,7 @@ src:
       .pyExec("tidy_results['pred_ts'] = tidy_results['timestamp'] + tidy_results['horizon']")
       .pyExec("tidy_results['horizon'] = tidy_results['horizon'].map(lambda h: h.total_seconds())")
       .pyEval("tidy_results")
-  
+    
     // Post-processing
     results = results.map() row => do
       // Units for horizon
@@ -229,38 +240,45 @@ src:
     if (uri.isNull) throw "Model must have a valid 'uri' tag"
     if (not uriIsDir(uri)) throw "Uri `" + uri.toStr + "` is not a directory"
     if (ioDir(uri).isEmpty) throw "Model directory `" + uri.toStr + "` is empty or does not exist"
-    
+  
    // Convert absolute to relative Uri
     if (uri.toStr.startsWith("/")) do
       // Verify absolute uri is for the active project
       // Convention is /proj/{projName}/io/...
       modelProj: uriPath(uri)[1]
-      
+  
       if (modelProj != context()->projName) do
         throw "Wattile model directory must be in the active project"
       end
-      
+  
       // Convert to relative Uri mounted at `io/`
       uri = uriPath(uri)[2..-1].pathToUri.uriPlusSlash
     end
-    
+  
     // Load model config in Python
     session
       .pyDefine("model_dir", "/" + uri.toStr)
       .pyExec("configs_path = pathlib.Path(model_dir) / 'configs.json'")
       .pyExec("""with open(configs_path, 'r', encoding='utf-8') as f:
                      configs = json.load(f)""")
-    
+  
     // Update configs: model directory, prediction use case
     session
-      .pyExec("configs['data_output']['exp_dir'] = model_dir")
-      .pyExec("configs['learning_algorithm']['use_case'] = 'prediction'")
+      .pyExec("configs['data_output']['exp_dir'] = model_dir") // Temporary?
+      .pyExec("configs['learning_algorithm']['use_case'] = 'prediction'") // Temporary
     
+    // TO DO: Remove setting 'exp_dir' manually if/when the model constructor
+    // sets it automatically to match the current path.
+    
+    // TO DO: Remove manually setting 'use_case' to "prediction" once Wattile supports it
+    // Right now, 'use_case' is used by prep_for_rnn() in addition to the predict() method,
+    // and therefore must still be set to "prediction" or things go sideways.
+  
     // Save configs
     session
       .pyExec("""with open(configs_path, 'w', encoding='utf-8') as f:
                      json.dump(configs, f, indent = 2)""")
-    
+  
     // Return "ok" (from Python to verify it all worked)
     session.pyEval("'ok'")
   end

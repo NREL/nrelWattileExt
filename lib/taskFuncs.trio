@@ -64,7 +64,7 @@ src:
     else if (action == "predict") do
       // Call prediction: see wattilePythonModelPredict()
       return pySession.wattilePythonModelPredict(msg->model, msg->span)
-    
+  
     // Setup
     else if (action == "cleanup") do
       // Event cleanup: see wattilePythonEventCleanup()

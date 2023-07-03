@@ -295,36 +295,31 @@ src:
       // Check directory uri
       if (not dir.isUri) dir = dir.parseUri(opts->checked)
   
-      // Validate directory integrity
+      // Verify directory integrity
       try do
         if (dir.isNull) throw "Model directory is null"
         if (ioInfo(dir).missing("dir")) throw "`" + dir.toStr + "` is not a directory"
         if (ioDir(dir).isEmpty) throw "Model directory `" + dir.toStr + "` is empty or does not exist"
-        if (ioDir(dir).find(f => f->name=="predictors_config.json", false) == null) throw "Model directory `" + dir.toStr + "` is missing \"predictors_config.json\""
+        if (ioDir(dir).find(f => f->name=="predictors_target_config.json", false) == null) throw "Model directory `" + dir.toStr + "` is missing \"predictors_target_config.json\""
       catch (ex) do
         if (opts->checked) throw (ex)
         return null // Invalid model
       end
   
       // Model dict
-      model: {wattileModel, uri:dir}
+      model: {wattileModel, uri:dir, dis:uriBasename(dir)}
   
       // Build up model dict with predictors and targets
       try do
         // Read config
-        predictorConfig: ioReadJson(dir + "predictors_config.json", {v3}) // TO DO: Update to v4 encoding
-  
-        // Temporary: if config is a list, assume it is a list of predictors
-        if (predictorConfig.isList) do
-          predictorConfig = {predictors:predictorConfig}
-        end
+        predictorConfig: ioReadJson(dir + "predictors_target_config.json", {v3}) // TO DO: Update to v4 encoding
   
         // Get predictors
         predictors: predictorConfig->predictors
           .map() p => do
             // Check for required tags
             if (p.missing("id")) throw "Predictor " + p.dis + " is missing 'id' key."
-            if (p.missing("column")) throw "Predictor " + p.dis + " is missing 'column' key."
+            if (p.missing("column")) throw "Predictor " + p.recDisWithId + " is missing 'column' key."
   
             // Default 'dis' to "description" key value, if present
             if (p.missing("dis") and p.has("description")) do
@@ -356,9 +351,6 @@ src:
             model = model.set("unit", predictorConfig->target->unit)
           end
         end
-  
-        // TO DO: Also import model name as 'dis'? From where?
-        // TO DO: Range cleaning options?
   
       catch (ex) do
         if (opts->checked) throw (ex)
@@ -469,7 +461,7 @@ src:
   
         // Get range
         minVal: if (point.has("minVal")) point->minVal else negInf()
-        maxVal: if (point.has("maxVal")) point->minVal else posInf()
+        maxVal: if (point.has("maxVal")) point->maxVal else posInf()
   
         // No default value: remove
         if (defVal == null) do
@@ -501,14 +493,14 @@ src:
           .hisRollup(count, opts->interval)
           .hisFindAll((val, ts) => val == 0)
           .keepCols(["ts"])
-        
+  
         // Interpolate gaps
         hisJoin([hisGrid, gaps]).hisInterpolate
       end
     else do
       hisInterpolateAtIntervalInternal: (hisGrid) => hisGrid
     end
-    
+  
     // Internal function: Final history interpolation (only if 'interpolate' option is set)
     if (opts->interpolate) do
       hisInterpolateInternal: (hisGrid) => hisGrid.hisInterpolate
@@ -521,7 +513,7 @@ src:
       hisRollupInternal: (hisGrid) => do
         // Data type
         kind: hisGrid.col("v0").meta["kind"]
-        
+  
         // Numeric
         if (kind == "Number") do
           return hisGrid.hisRollupAuto(opts->interval)
@@ -551,12 +543,12 @@ src:
     data = data.map() dict => do
       // Get corresponding point
       p: points.find(x => x->id == dict->id)
-      
+  
       // Extract history grid
       history: dict->hisGrid
   
       // Check for empty history
-      if (history.hisClip.isEmpty) throw "No history found for point \"" + p.dis + "\" and span " + format(span)
+      if (history.hisClip.isEmpty) throw "No history found for point \"" + p.recDisWithId + "\" and span " + format(span)
   
       // Preserve original 'dis', if applicable
       // Needed to enforce column names on CSV export
@@ -615,9 +607,9 @@ src:
   
       // Record not found
       if (refList.isEmpty) do
-        throw "Ref " + ref.toStr + " cannot be found anywhere in the cluster."
+        throw "Ref @" + ref.toStr + " cannot be found anywhere in the cluster."
       else if (refList.size > 1) do
-        throw "Ref " + ref.toStr + " did not resolve to a unique record!" // This shouldn't ever happen
+        throw "Ref @" + ref.toStr + " did not resolve to a unique record!" // This shouldn't ever happen
       else do
         ref = refList.first.toRecId
       end
@@ -698,16 +690,19 @@ src:
     // Validate points
     points.each() p => do
       // Required tags
-      if (p.missing("wattileModelRef")) throw "Point \"" + p.dis + "\" is missing 'wattileModelRef' tag"
-      if (p.missing("wattileQuantile")) throw "Point \"" + p.dis + "\" is missing 'wattileQuantile' tag"
-      if (p.missing("his")) throw "Point \"" + p.dis + "\" is missing 'his' tag"
-      if (p.missing("tz")) throw "Point \"" + p.dis + "\" is missing 'tz' tag"
+      if (p.missing("wattileModelRef")) throw "Point \"" + p.recDisWithId + "\" is missing 'wattileModelRef' tag"
+      if (p.missing("wattileQuantile")) throw "Point \"" + p.recDisWithId + "\" is missing 'wattileQuantile' tag"
+      if (p.missing("his")) throw "Point \"" + p.recDisWithId + "\" is missing 'his' tag"
+      if (p.missing("tz")) throw "Point \"" + p.recDisWithId + "\" is missing 'tz' tag"
     end
   
     // Models
-    models: points
-      .map(p => p->wattileModelRef.toRec)
-      .unique("id")
+    models: points.map(p => p->wattileModelRef.toRec)
+    if (models.isEmpty) do
+      throw "No Wattile model records found!"
+    else do
+      models = models.unique("id")
+    end
   
     // Span
     if (span != null) span = span.toSpan
@@ -716,7 +711,7 @@ src:
     modifiedPoints: models.toRecList.flatMap() model => do
       // Task progress
       taskProgress({model:model.dis})
-      
+  
       // Get associated points
       pointsLocal: points.findAll(p => p->wattileModelRef == model->id)
   
@@ -729,7 +724,7 @@ src:
         if (pointsLocal.isEmpty) do
           logWarn(
             {name:"nrelWattile", funcTrace:"wattileSyncHis"},
-            "No points with 'hisEnd' tag found for model " + model.dis + "; skipping."
+            "No points with 'hisEnd' tag found for model " + model.recDisWithId + "; skipping."
           )
           return []
         end
@@ -737,15 +732,15 @@ src:
         // Oldest 'hisEnd' to present, limited by 'limit' if applicable
         spanLocalStart: pointsLocal.toGrid.colToList("hisEnd").sort.first
         spanLocalEnd: now().toTimeZone(spanLocalStart.tz)
-        
+  
         if (opts.has("limit") and spanLocalEnd > (spanLocalStart + opts->limit)) do
           spanLocalEnd = (spanLocalStart + opts->limit)
         else if (spanLocalStart > spanLocalEnd) do
           return [] // Skip if up-to-date
         end
-        
+  
         spanLocal: spanLocalStart..spanLocalEnd
-        
+  
       else do
         // User-specified span
         spanLocal: span

@@ -1,0 +1,10 @@
+name:recDisWithId
+doc:
+  Returns a record's display name and ID as a Str in the standard format
+  'Display Name (@id)'.
+func
+src:
+  (rec) => do
+    rec = rec.toRec
+    rec.dis + " (@" + rec->id.toStr + ")"
+  end
