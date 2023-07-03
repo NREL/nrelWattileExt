@@ -625,8 +625,6 @@ doc:
   
   Each point must define valid tags `wattileModelRef` and `wattileQuantile`. If run within a task, will report task progress.
   
-  **TO DO:** Defs for wattileModelRef, wattileQuantile
-  
   Sync
   ----
   
@@ -644,12 +642,14 @@ doc:
   
   Sync behavior can be modified by control options passed via 'opts':
   
+  - 'delay': Number; delay from the present for syncing predictions (default = '0s')
   - 'forecast': Boolean; also write forecast data (default = 'false')
   - 'forecastOnly': Boolean; *only* write forecast data (default = 'false')
+  - 'hotPeriod': Number; optional hot period for syncing predictions (default = None)
   - 'limit': Number; limits the length of time span to sync when 'span' is Null (default = None)
   - 'overwrite': Boolean; allows existing history to be overwritten (ignores 'hisEnd') (default = 'false')
   
-  All options may be also be passed as markers, with 'x' equivalent to 'x:true' and '-x' equivalent to 'x:false'. If 'forecastOnly = true', the 'forecast' option is ignored. To avoid warning spam in the logs, the 'overwrite' option also sets the `hisWrite` 'noWarn' flag.
+  Boolean options may be also be passed as markers, with 'x' equivalent to 'x:true' and '-x' equivalent to 'x:false'. If 'forecastOnly = true', the 'forecast' option is ignored. To avoid warning spam in the logs, the 'overwrite' option also sets the `hisWrite` 'noWarn' flag.
   
   Forecasts
   ---------
@@ -662,15 +662,29 @@ doc:
   If 'span' is Null, then the time span to sync is calculated for each set of points grouped by 'wattileModelRef'. For each group:
   
   - Start of span: Equals the earliest 'hisEnd' among points in the group
-  - End of span: Equals the output of `now` or the start of span plus 'limit' (when specified), whichever is earlier
+  - End of span: Equals the output of `now` minus 'delay' or the start of span plus 'limit' (when specified), whichever is earlier
   
   When this function is called from a task or job to keep predictions up-to-date, best practice is to specify 'limit' to avoid extremely large sync batches.
+  
+  Sync Delay
+  ----------
+  
+  The 'delay' option delays syncing of predictions in "real time" to ensure complete input data, specified as a duration measuring backwards in time from the present (as returned by `now`). The minimum recommended 'delay' is the amount of time needed for predictor data to stabilize, *e.g.* for predictor point histories to sync and be written to disk. This helps ensure that the predictions are computed from complete and valid data.
+  
+  If 'span' is specified (non-Null), the 'delay' option is ignored.
+  
+  Hot Period
+  ----------
+  
+  The 'hotPeriod' option functions similarly to the hot period for rules: during the hot period the synced predictions are continuously refreshed. This is accomplished by clearing point history within the hot period immediately prior to writing the new predictions. Like 'delay', 'hotPeriod' is specified as a duration measuring backwards in time from the present. 
+  
+  If 'span' is specified (non-Null), the 'hotPeriod' option is ignored.
 func
 overridable
 src:
   (points, task, span:null, opts:{}) => do
     // Default options
-    opts = {}.merge(opts)
+    opts = {delay:0s}.merge(opts)
   
     // T/F options
     opts = opts.set("overwrite",     opts.has("overwrite")     and opts["overwrite"]     != false)
@@ -687,6 +701,19 @@ src:
     writeHistory: not opts->forecastOnly
     writeForecast: opts->forecast or opts->forecastOnly
   
+    // Sync delay
+    delay: opts->delay.to(1s)
+    
+    // Hot period
+    if (opts.has("hotPeriod")) do
+      hotPeriod: opts->hotPeriod.to(1s)
+    else do
+      hotPeriod: null
+    end
+  
+    // Error flag
+    ok: true
+    
     // Points
     points = points.toRecIdList.readByIds
   
@@ -735,16 +762,20 @@ src:
           return []
         end
   
-        // Oldest 'hisEnd' to present, limited by 'limit' if applicable
+        // Start: oldest 'hisEnd'
         spanLocalStart: pointsLocal.toGrid.colToList("hisEnd").sort.first
-        spanLocalEnd: now().toTimeZone(spanLocalStart.tz)
+        
+        // End: the present, minus the sync delay (if any)
+        spanLocalEnd: now().toTimeZone(spanLocalStart.tz) - delay
   
+        // Span limit
         if (opts.has("limit") and spanLocalEnd > (spanLocalStart + opts->limit)) do
           spanLocalEnd = (spanLocalStart + opts->limit)
         else if (spanLocalStart > spanLocalEnd) do
           return [] // Skip if up-to-date
         end
   
+        // Return span
         spanLocal: spanLocalStart..spanLocalEnd
   
       else do
@@ -793,7 +824,23 @@ src:
           else if (p.missing("hisEnd")) do
             // All history
             hisWrite(history, p)
-          else do
+          else if (hotPeriod != null) do
+            // New history, using hot period
+            hotPeriodStart: now() - hotPeriod
+            
+            // Remove existing point history in hot period; filter by hot period
+            if (p->hisEnd >= hotPeriodStart) do
+              p.hisRemove(hotPeriodStart..now())
+              history = history.hisFindAll((val, ts) => ts >= hotPeriodStart)
+            
+            // No existing history in hot period; use hisEnd
+            else do
+              history = history.hisFindAll((val, ts) => ts > p->hisEnd)
+            end
+            
+            // Write
+            history.hisWrite(p)
+          else do 
             // New history only
             history
               .hisFindAll((val, ts) => ts > p->hisEnd)
