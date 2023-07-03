@@ -42,8 +42,9 @@ is: ^point
 doc:
   Point associated with a Wattile model; receives Wattile prediction data.
 ---
-def: ^wattileHis
-is: ^str
-doc:
-  Used on a `wattilePoint` to define the column of the Wattile prediction
-  output used to sync history data.
+def: ^wattileQuantile
+is: ^number
+tagOn: ^wattilePoint
+doc: 
+  Used on a `wattilePoint` to define the quantile of the Wattile prediction
+  output used to sync prediction history.
