@@ -677,6 +677,9 @@ src:
     opts = opts.set("forecast",      opts.has("forecast")      and opts["forecast"]      != false)
     opts = opts.set("forecastOnly",  opts.has("forecastOnly")  and opts["forecastOnly"]  != false)
   
+    // Task is running?
+    inTask: taskIsRunning()
+  
     // If span is unspecified, never overwrite
     if (span == null) opts = opts.set("overwrite", false)
   
@@ -708,9 +711,12 @@ src:
     if (span != null) span = span.toSpan
   
     // Iterate models
-    modifiedPoints: models.toRecList.flatMap() model => do
+    modifiedPoints: models.toRecList.flatMap() (model, i) => do
       // Task progress
-      taskProgress({model:model.dis})
+      if (inTask) do
+        progPct: round(10 * (i / models.size * 100%)) / 10 // Round to 0.1%
+        taskProgress({percent:progPct, model:model.dis})
+      end
   
       // Get associated points
       pointsLocal: points.findAll(p => p->wattileModelRef == model->id)
@@ -745,7 +751,12 @@ src:
         // User-specified span
         spanLocal: span
       end
-  
+      
+      // Task progress
+      if (inTask) do
+        taskProgress({percent:progPct, model:model.dis, span:span.format})
+      end
+      
       // Call predict
       data: task.taskSend({action: "predict", model:model, span:spanLocal}).futureGet()
   
