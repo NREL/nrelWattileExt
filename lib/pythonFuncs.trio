@@ -153,7 +153,6 @@ src:
   
     // Read and prepare data: see wattileReadHis()
     data: wattileReadHis(predictors, readSpan, readOpts)
-      .map() row => row.set("ts", row->ts.toTimeZone("UTC")) // Temporary; will be handled by Wattile in the future
      
     // Adjust model config start/end times (Temporary? Avoids dropping data.)
     session
