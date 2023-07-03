@@ -82,6 +82,8 @@ stored in the [Trio]-formatted files within `lib/`:
 - `pythonFuncs.trio`: Functions for interacting with Python (internal use)
 - `supportFuncs.trio`: Other supporting functions (internal use)
 
+**TO DO:** Update/correct list above
+
 The simplest development workflow is to import these functions into SkySpark,
 make changes *Code* app (and test via *Tools*), export back to Trio format, and
 update the corresponding file(s) in the repo. Workflows for importing functions
