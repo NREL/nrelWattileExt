@@ -758,7 +758,17 @@ src:
       end
       
       // Call predict
-      data: task.taskSend({action: "predict", model:model, span:spanLocal}).futureGet()
+      try do
+        data: task.taskSend({action: "predict", model:model, span:spanLocal}).futureGet()
+      catch (ex) do
+        logErr(
+          {name:"nrelWattileExt", funcTrace:"wattileSyncHis"},
+          "Prediction failed for model " + model.recDisWithId + ".",
+          ex
+        )
+        ok = false
+        return []
+      end
   
       // Write prediction history
       if (writeHistory) do
@@ -819,7 +829,14 @@ src:
       // Return modified points
       pointsLocal.toRecList
     end
-  
+    
+    // Check for error
+    if (not ok) do
+      throw "Error(s) occurred during Wattile prediction; see log."
+    else if (inTask) do
+      taskProgress({percent:100%, message:"Complete"})
+    end
+    
     // History sync then return modified point records
     hisSync()
     modifiedPoints.flatten.toRecIdList.readByIds
