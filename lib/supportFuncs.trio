@@ -697,9 +697,12 @@ src:
     end
   
     // Models
-    models: points
-      .map(p => p->wattileModelRef.toRec)
-      .unique("id")
+    models: points.map(p => p->wattileModelRef.toRec)
+    if (models.isEmpty) do
+      throw "No Wattile model records found!"
+    else do
+      models = models.unique("id")
+    end
   
     // Span
     if (span != null) span = span.toSpan
