@@ -107,10 +107,12 @@ src:
     
     // Verify model configuration
     if (modelConfig->learning_algorithm->use_case != "prediction") do
-      throw "Model " + model.dis + " is not configured for prediction. Did you run model setup?"
+      throw "Model " + model.recDisWithId +
+        " is not configured for prediction. Did you run model setup?"
     end
     if (not model->uri.toStr.endsWith(modelConfig->data_output->exp_dir[1..-1])) do
-      throw "Model " + model.dis + " directory mismatch. Did you run model setup?"
+      throw "Model " + model.recDisWithId +
+        " directory mismatch. Did you run model setup?"
     end
   
     // Load history read options

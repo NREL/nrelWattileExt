@@ -319,7 +319,7 @@ src:
           .map() p => do
             // Check for required tags
             if (p.missing("id")) throw "Predictor " + p.dis + " is missing 'id' key."
-            if (p.missing("column")) throw "Predictor " + p.dis + " is missing 'column' key."
+            if (p.missing("column")) throw "Predictor " + p.recDisWithId + " is missing 'column' key."
   
             // Default 'dis' to "description" key value, if present
             if (p.missing("dis") and p.has("description")) do
@@ -548,7 +548,7 @@ src:
       history: dict->hisGrid
   
       // Check for empty history
-      if (history.hisClip.isEmpty) throw "No history found for point \"" + p.dis + "\" and span " + format(span)
+      if (history.hisClip.isEmpty) throw "No history found for point \"" + p.recDisWithId + "\" and span " + format(span)
   
       // Preserve original 'dis', if applicable
       // Needed to enforce column names on CSV export
@@ -690,10 +690,10 @@ src:
     // Validate points
     points.each() p => do
       // Required tags
-      if (p.missing("wattileModelRef")) throw "Point \"" + p.dis + "\" is missing 'wattileModelRef' tag"
-      if (p.missing("wattileQuantile")) throw "Point \"" + p.dis + "\" is missing 'wattileQuantile' tag"
-      if (p.missing("his")) throw "Point \"" + p.dis + "\" is missing 'his' tag"
-      if (p.missing("tz")) throw "Point \"" + p.dis + "\" is missing 'tz' tag"
+      if (p.missing("wattileModelRef")) throw "Point \"" + p.recDisWithId + "\" is missing 'wattileModelRef' tag"
+      if (p.missing("wattileQuantile")) throw "Point \"" + p.recDisWithId + "\" is missing 'wattileQuantile' tag"
+      if (p.missing("his")) throw "Point \"" + p.recDisWithId + "\" is missing 'his' tag"
+      if (p.missing("tz")) throw "Point \"" + p.recDisWithId + "\" is missing 'tz' tag"
     end
   
     // Models
@@ -721,7 +721,7 @@ src:
         if (pointsLocal.isEmpty) do
           logWarn(
             {name:"nrelWattile", funcTrace:"wattileSyncHis"},
-            "No points with 'hisEnd' tag found for model " + model.dis + "; skipping."
+            "No points with 'hisEnd' tag found for model " + model.recDisWithId + "; skipping."
           )
           return []
         end
