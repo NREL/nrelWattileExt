@@ -42,16 +42,20 @@ doc:
   
   - 'appendUnits': Boolean; if 'true' then units will be appended to column names (Default = false)
   - 'clean': Boolean; see `wattileReadHis` (Default = false)
+  - 'batch'; Integer; see `wattileReadHis` (Default = none)
   - 'defVal': Number or NA; see `wattileReadHis` (Default = none)
   - 'interpolate': Boolean; see `wattileReadHis` (Default = false)
   - 'interval': Number; see `wattileReadHis` (Default = none)
   - 'jsonVersion': Str; either 'v3' or 'v4'; see [Json]`docHaystack::Json` (Default = 'v3')
   - 'name': Str; data set name to use in output files (Default = name of 'dir')
   - 'preview': Boolean; if 'true' then return the data set configuration JSON without writing any files (Default = false)
+  - 'removeNA': Boolean; see `wattileReadHis` (Default = false)
   - 'rollup': Boolean; see `wattileReadHis` (Default = false)
   - 'splitBy': Str; One of "day", "week", "month", or "year" indicating the interval at which to split the data files (Default = no splitting)
+  - 'timeout': Number; see `wattileReadHis` (Default = none)
+  - 'warn': Boolean; see `wattileReadHis` (Default = true)
   
-  The 'appendUnits', 'clean', 'interpolate', 'preview', and 'rollup' options may be also be passed as markers, with 'x' equivalent to 'x:true' and '-x' equivalent to 'x:false'.
+  Boolean options may be also be passed as markers, with 'x' equivalent to 'x:true' and '-x' equivalent to 'x:false'.
   
   Pre-Processing
   --------------
@@ -59,6 +63,11 @@ doc:
   Options 'clean', 'defVal', 'interpolate', 'interval', and 'rollup' control data pre-processing prior to export. See `wattileReadHis` for each option's effect.
   
   Note: interpolation is performed for each exported CSV file independently, therefore, the set of timestamps in target and predictor CSV file for the same date range are not guaranteed to be the same.
+  
+  Tips
+  ----
+  
+  - If you are trying to read history from remote projects via Arcbeam and keep seeing an error that XQuery did not return the correct number of points, experiment with increasing 'timeout' and/or decreasing 'batch'. See `wattileReadHis` for details.
 func
 overridable
 src:
@@ -76,7 +85,9 @@ src:
       interpolate: false,
       jsonVersion: "v3",
       preview:     false,
-      rollup:      false
+      removeNA:    false,
+      rollup:      false,
+      warn:        true
     }.merge(opts)
   
     // T/F options
@@ -84,7 +95,9 @@ src:
     opts = opts.set("clean",       opts.has("clean")       and opts["clean"]       != false)
     opts = opts.set("interpolate", opts.has("interpolate") and opts["interpolate"] != false)
     opts = opts.set("preview",     opts.has("preview")     and opts["preview"]     != false)
+    opts = opts.set("removeNA",    opts.has("removeNA")    and opts["removeNA"]    != false)
     opts = opts.set("rollup",      opts.has("rollup")      and opts["rollup"]      != false)
+    opts = opts.set("warn",        opts.has("warn")        and opts["warn"]        != false)
   
     // Verify directory
     if (not dir.uriIsDir) throw "'dir' `" + dir.toStr + "` is not a directory."
@@ -139,7 +152,8 @@ src:
     end
   
     // Options to pass through to wattileReadHis()
-    readOpts: opts.findAll((val, key) => key.in(["clean", "defVal", "interpolate", "interval", "rollup"]))
+    readOptNames: ["clean", "batch", "defVal", "interpolate", "interval", "removeNA", "rollup", "timeout", "warn"]
+    readOpts: opts.findAll((val, key) => key.in(readOptNames))
   
     // Internal function to read, process, and export history for specific time range
     hisExportInternal: (points, spanLocal, file) => do
@@ -403,11 +417,14 @@ doc:
   Data pre-processing is controlled by the following options, passed via 'opts':
   
   - 'clean': Boolean; if 'true' then data will be range-cleaned prior to export by removing values outside the range defined by each point's `minVal` and `maxVal` tags (Default = false)
+  - 'batch': Integer; optional batch size for XQuery; see below (Default = none)
   - 'defVal': Number or NA; governs range cleaning behavior; see below (Default = none)
   - 'interpolate': Boolean; if 'true' then data will be interpolated (Default = false)
   - 'interval': Number; optional interval at which to interpolate and/or roll up the data (Default = none)
-  - 'rollup': Boolean; if 'true' then a history rollup will be applied (Default = false)
   - 'removeNA': Boolean; if 'true' then NA values will be removed (Default = false)
+  - 'rollup': Boolean; if 'true' then a history rollup will be applied (Default = false)
+  - 'timeout': Number; optional timeout for `xq`; see below (Default = none)
+  - 'warn': Boolean; if 'true' log warnings; if 'false' suppress them (Default = true)
   
   Boolean options may be also be passed as markers, with 'x' equivalent to 'x:true' and '-x' equivalent to 'x:false'. If 'rollup' is 'true', then 'interval' must also be specified.
   
@@ -437,6 +454,19 @@ doc:
   
   If the 'rollup' option is provided, data are rolled up at the specified 'interval' using `hisRollupAuto`.
   
+  Handling Large History Reads
+  ----------------------------
+  
+  Large or computationally-intensive history reads from remote projects can cause unexpected XQuery behavior, such as silent timeouts or keep-alive resets of the Arcbeam websocket. When this happens, you may see the an error message like this:
+  
+    Expected X points; XQuery returned Y.
+  
+  Two options can help:
+  
+  - 'timeout' is passed through to `xq`; increase it to allow XQueries more time to complete
+  - 'batch' sets the maximum number of points read per XQuery; decrease it to spread out the history reads over more XQueries
+  
+  Note: smaller 'batch' size reduces the chance of individual XQuery failures but increases both the total number of XQueries and the total function execution time.
 func
 overridable
 src:
@@ -444,16 +474,48 @@ src:
     // Argument parsing
     points = points.toRecList
     span = span.toSpan
+    
+    // Check points
+    if (points.isEmpty) do
+      throw "'points' cannot be empty."
+    end
   
     // Default options
-    opts = {clean:false, interpolate:false, removeNA:false, rollup:false}.merge(opts)
+    opts = {
+      clean: false,
+      interpolate: false,
+      removeNA: false,
+      rollup: false,
+      warn: true
+    }.merge(opts)
   
     // T/F options
     opts = opts.set("clean",       opts.has("clean")       and opts["clean"]       != false)
     opts = opts.set("interpolate", opts.has("interpolate") and opts["interpolate"] != false)
     opts = opts.set("removeNA",    opts.has("removeNA")    and opts["removeNA"]    != false)
     opts = opts.set("rollup",      opts.has("rollup")      and opts["rollup"]      != false)
-  
+    opts = opts.set("warn",        opts.has("warn")        and opts["warn"]        != false)
+    
+    // XQuery options
+    if (opts.has("timeout")) do
+      xqOpts: {timeout:opts->timeout}
+    else do
+      xqOpts: null
+    end
+    
+    // XQuery read batches
+    if (opts.has("batch")) do
+      batchSize: floor(opts->batch)
+      numBatch: ceil(points.size / batchSize)
+      batches: (0..(numBatch-1)).map() b => do
+        idxLow: b * batchSize
+        idxHigh: idxLow + batchSize - 1
+        getSafe(points, idxLow..idxHigh)
+      end
+    else do
+      batches: [points]
+    end
+    
     // Internal function: Perform range cleaning (only if 'clean' option is set)
     if (opts->clean) do
       hisRangeCleanInternal: (hisGrid, point) => do
@@ -467,7 +529,7 @@ src:
         end
         
         // Warn if default value is NA and removeNA is set
-        if (defVal == na() and opts->removeNA) do
+        if (opts->warn and defVal == na() and opts->removeNA) do
           logWarn(
             {name:"nrelWattile", funcTrace:"wattileReadHis"},
             "Option 'removeNA' = true overrides a default value ('defVal' option) of NA; " +
@@ -555,23 +617,36 @@ src:
       hisGrid.hisMap() (v, t) => if (v.isNumber) v.to(point["unit"]) else v
     end
   
-    // Read each history as individual hisGrid
-    data: xq()
-      .xqDefine("readspan", span)
-      .xqReadByIdsList(points.toRecIdList)
-      .xqMap("p => {id:p->id, hisGrid:p.toRecId.hisRead(readspan, {-limit})}")
-      .xqExecute
-  
+    // Run XQuery in batches
+    data: batches
+      .map(batchPoints => xq(xqOpts)
+        .xqDefine("readspan", span)
+        .xqReadByIdsList(batchPoints.toRecIdList)
+        .xqMap("p => {id:p->id, hisGrid:p.toRecId.hisRead(readspan, {-limit, hisKeepEmptyCols})}")
+        .xqExecute  
+      ).flatten
+      
+    // Verify all points found
+    if (data.size < points.size) do
+      throw "Expected " + points.size.toStr + " points; XQuery returned " + data.size + "."
+    end
+    
     // Process histories
     data = data.map() dict => do
       // Get corresponding point
       p: points.find(x => x->id == dict->id)
   
       // Extract history grid
-      history: dict->hisGrid
+      history: dict->hisGrid.addMeta({hisKeepEmptyCols})
   
       // Check for empty history
-      if (history.hisClip.isEmpty) throw "No history found for point \"" + p.recDisWithId + "\" and span " + format(span)
+      if (opts->warn and history.hisClip.isEmpty) do
+        logWarn(
+          {name:"nrelWattile", funcTrace:"wattileReadHis"},
+          "No history found for point " + p.recDisWithId +
+          " and span " + format(span)
+        )
+      end
   
       // Preserve original 'dis', if applicable
       // Needed to enforce column names on CSV export
