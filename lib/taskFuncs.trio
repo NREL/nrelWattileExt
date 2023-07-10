@@ -41,6 +41,10 @@ doc:
   
   Each row of the grid represents the value of a unique '["timestamp", "quantile", "horizon"]' tuple from the underlying Wattile output XArray.
   
+  The Wattile model record(s) may have a `wattileReadOpts` tag which provides
+  model-specific options to use when calling `wattileReadHis` in the context of
+  model prediction.
+  
   Cleanup
   -------
   

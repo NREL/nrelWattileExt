@@ -44,16 +44,24 @@ tagOn: ^wattilePoint
 doc:
   Reference to an associated Wattile model.
 ---
-def: ^wattileOpts
-is: ^dict
-tagOn: ^wattileModel
-doc:
-  Options dictionary for a Wattile model.
----
 def: ^wattilePoint
 is: ^point
 doc:
   Point associated with a Wattile model; receives Wattile prediction data.
+---
+def: ^wattileReadOpts
+is: ^dict
+tagOn: ^wattileModel
+doc:
+  Wattile model history read options dictionary compatible with
+  `wattileReadHis`.
+---
+def: ^wattileSyncOpts
+is: ^dict
+tagOn: ^wattileModel
+doc:
+  Wattile model synchronization options dictionary compatible with
+  `wattileSyncHis`.
 ---
 def: ^wattileQuantile
 is: ^number
