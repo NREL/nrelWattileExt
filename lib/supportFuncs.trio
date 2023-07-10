@@ -54,7 +54,7 @@ doc:
     - 'column': Column name in CSV file(s)
     - 'unit': Unit
   - 'targets': A list of target variables, including at minimum
-    the `column` field and following the same conventions as `predictors`
+    the 'column' field and following the same conventions as 'predictors'
   - 'files': Provides a list of all CSV files in the data set, each as an dictionary
     with the following metadata:
     - 'filename': Name of the associated CSV file
