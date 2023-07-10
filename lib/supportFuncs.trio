@@ -1,3 +1,39 @@
+name:toWattileModels
+doc:
+  Read all `wattileModel` records associated with the specified 'points'.
+func
+src:
+  // toWattileModels(points) => Query Wattile models associated with points
+  // See 'doc' tag for documentation
+  
+  (points) => do
+    // Read models
+    models: points
+      .toRecList
+      .findAll(p => p.has("wattileModelRef"))
+      .map(p => readById(p->wattileModelRef))
+    
+    // Ensure unique
+    models.toGrid.unique("id")
+  end
+---
+name:toWattilePoints
+doc:
+  Read all `wattilePoint` points associated with the specified 'wattileModels' via `wattileModelRef`.
+func
+src:
+  // toWattilePoints(wattileModels) => Query points associated with Wattile models
+  // See 'doc' tag for documentation
+  
+  (wattileModels) => do
+    wattileModels
+      .toRecList
+      .toGrid
+      .flatMap() model => do
+        readAll(point and wattilePoint and wattileModelRef==model.toRecId).toRecList
+      end
+  end
+---
 name:wattileExportTrainingData
 doc:
   For the specified 'predictors', 'targets', and time 'span', export historical data to directory 'dir' for training Wattile models. 'predictors' and 'targets' are any inputs supported by `toRecList`; 'span' is any input supported by `toSpan`. The exported data are consistent with the training data input format required by [Wattile]`https://github.com/NREL/Wattile/blob/main/docs/Data_configs.md`.
