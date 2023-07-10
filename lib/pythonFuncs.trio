@@ -186,6 +186,11 @@ src:
       .pyExec("predictor_data_frame = predictor_data_frame.rename(columns=column_specification)")
       .pyExec("predictor_data_frame[configs['data_input']['target_var']] = -999") // Temporary; prevents dropping rows
   
+    // NA type conversion
+    session
+      .pyExec("notNA = predictor_data_frame.applymap(lambda v: not isinstance(v, hxpy.haystack.na.NA))")
+      .pyExec("predictor_data_frame = predictor_data_frame.where(notNA, pandas.NA)")
+  
     // TO DO: Remove the placeholder target var once Wattile supports that
     // (Tested 12/15/2022 with Wattile build from main: still needed)
     
