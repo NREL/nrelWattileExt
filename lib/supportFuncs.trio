@@ -3,9 +3,6 @@ doc:
   Read all `wattileModel` records associated with the specified 'points'.
 func
 src:
-  // toWattileModels(points) => Query Wattile models associated with points
-  // See 'doc' tag for documentation
-  
   (points) => do
     // Read models
     models: points
@@ -22,9 +19,6 @@ doc:
   Read all `wattilePoint` points associated with the specified 'wattileModels' via `wattileModelRef`.
 func
 src:
-  // toWattilePoints(wattileModels) => Query points associated with Wattile models
-  // See 'doc' tag for documentation
-  
   (wattileModels) => do
     wattileModels
       .toRecList
