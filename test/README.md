@@ -45,9 +45,8 @@ Setup Instructions
    setup; see below).
 3. Docker installed and running (not needed for setup; needed for running the
    example code)
-4. A local Docker image built using the [Wattile] repo and tagged as "wattile"
-
-[Wattile]: https://github.com/NREL/wattile/
+4. A local Docker image built from this repo and tagged as "wattile"; see the
+   top-level `README.md` for instructions.
 
 ### Setup Instructions ###
 
