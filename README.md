@@ -73,22 +73,26 @@ Docker
 
 To build the required Docker image containing [Wattile]:
 
-1. Install and launch [Docker].
+1. Install and launch [Docker]
 2. Clone the [nrelWattileExt] repository branch or release corresponding to your
-   current **nrelWattileExt** version.
+   current **nrelWattileExt** version
 3. From the repository root directory, run:
      
-     docker build --tag="wattile" .
+   ```
+   docker build --tag="wattile" .
+   ```
    
    Optionally, to specify a Wattile version other than default:
    
-     docker build --build-arg="WATTILE_VERSION=X.Y.Z" --tag="wattile" .
+   ```
+   docker build --build-arg="WATTILE_VERSION=X.Y.Z" --tag="wattile" .
+   ```
 
 If you did not build the Docker image on the same system where SkySpark runs,
 you will also need to copy and install the Docker image on your SkySpark system:
 
-1. Run `docker save wattile | gzip > wattile.tar.gz` (this may take a while).
-2. Copy `wattile.tar.gz` to the target system.
+1. Run `docker save wattile | gzip > wattile.tar.gz` (this may take a while)
+2. Copy `wattile.tar.gz` to the target system
 3. Run `docker load --input /path/to/wattile.tar.gz`
 
 The Docker image is now ready for use with SkySpark.
