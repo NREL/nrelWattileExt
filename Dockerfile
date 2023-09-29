@@ -10,6 +10,9 @@ RUN apt-get -y update; apt-get -y install curl
 RUN mkdir /wattile
 RUN curl -L https://github.com/NREL/Wattile/archive/refs/tags/${WATTILE_VERSION}.tar.gz | tar zx -C /wattile  --strip-components 1
 
+# ADD HERE: Some kind of switch to allow specifying a Wattile branch name instead of a Wattile version
+#RUN curl -L https://github.com/NREL/Wattile/archive/develop.tar.gz | tar zx -C /wattile  --strip-components 1
+
 # Copy Wattile and Models
 RUN mv /wattile/tests/fixtures /wattile/trained_models
 ENV PYTHONPATH=${PYTHONPATH}:${PWD}
