@@ -59,11 +59,50 @@ Prerequisites
 
 To use **nrelWattileExt**, you must have:
 
-1. Docker installed and working with SkySpark
-2. A local Docker image built from the [Wattile] repo registered with a tag you
-   can access from SkySpark (e.g. "wattile")
+1. [Docker] installed and working with SkySpark
+2. A local Docker image built from the [nrelWattileExt] repo registered with a
+   tag you can access from SkySpark (e.g. "wattile"); see *Docker* below
 
-**TO DO:** Put more instructions here.
+[Docker]: https://www.docker.com/ "Docker"
+[nrelWattileExt]: https://github.com/NREL/nrelWattileExt "nrelWattileExt"
+
+**TO DO:** Put more instructions here? Or in `pod.fandoc`?
+
+Docker
+------
+
+To build the required Docker image containing [Wattile]:
+
+1. Install and launch [Docker]
+2. Clone the [nrelWattileExt] repository branch or release corresponding to your
+   current **nrelWattileExt** version
+3. From the repository root directory, run:
+     
+   ```
+   docker build --tag="wattile" .
+   ```
+   
+   Optionally, to specify a Wattile release version or branch other than
+   the default:
+   
+   ```
+   docker build --build-arg="WATTILE_RELEASE=X.Y.Z" --tag="wattile" .
+   ```
+   
+   or
+   
+   ```
+   docker build --build-arg="WATTILE_BRANCH=branch" --tag="wattile" .
+   ```
+
+If you did not build the Docker image on the same system where SkySpark runs,
+you will also need to copy and install the Docker image on your SkySpark system:
+
+1. Run `docker save wattile | gzip > wattile.tar.gz` (this may take a while)
+2. Copy `wattile.tar.gz` to the target system
+3. Run `docker load --input /path/to/wattile.tar.gz`
+
+The Docker image is now ready for use with SkySpark.
 
 Documentation
 -------------
