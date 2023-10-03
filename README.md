@@ -82,10 +82,17 @@ To build the required Docker image containing [Wattile]:
    docker build --tag="wattile" .
    ```
    
-   Optionally, to specify a Wattile version other than default:
+   Optionally, to specify a Wattile release version or branch other than
+   the default:
    
    ```
-   docker build --build-arg="WATTILE_VERSION=X.Y.Z" --tag="wattile" .
+   docker build --build-arg="WATTILE_RELEASE=X.Y.Z" --tag="wattile" .
+   ```
+   
+   or
+   
+   ```
+   docker build --build-arg="WATTILE_BRANCH=branch" --tag="wattile" .
    ```
 
 If you did not build the Docker image on the same system where SkySpark runs,
