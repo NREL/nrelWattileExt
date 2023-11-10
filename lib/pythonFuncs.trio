@@ -117,8 +117,8 @@ src:
     end
   
     // Load history read options
-    if (model.has("wattileOpts")) do
-      readOpts: model->wattileOpts
+    if (model.has("wattileReadOpts")) do
+      readOpts: model->wattileReadOpts
     else do
       readOpts: {} // Use defaults
     end
