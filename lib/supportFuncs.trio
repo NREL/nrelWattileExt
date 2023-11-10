@@ -829,7 +829,7 @@ src:
       opts = opts.set("progress",      opts.has("progress")      and opts["progress"]      != false)
   
       // Report task progress only if inside a task
-      opts.set("progress", taskIsRunning() and opts->progress)
+      opts = opts.set("progress", taskIsRunning() and opts->progress)
   
       // If span is unspecified, never overwrite
       if (span == null) opts = opts.set("overwrite", false)
