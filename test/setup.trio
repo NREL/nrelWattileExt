@@ -162,7 +162,7 @@ src:
     // Note: First removes any existing test_model directory!
     py({image:image})
       .pyExec("import shutil")
-      .pyExec("shutil.copytree('/trained_models/alfa_exp_dir/', '/io/wattile/alfa_model/')")
-      .pyExec("shutil.copytree('/trained_models/bravo_exp_dir/', '/io/wattile/bravo_model/')")
+      .pyExec("shutil.copytree('/wattile/trained_models/alfa_exp_dir/', '/io/wattile/alfa_model/')")
+      .pyExec("shutil.copytree('/wattile/trained_models/bravo_exp_dir/', '/io/wattile/bravo_model/')")
       .pyEval("'Done!'")
   end
