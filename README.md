@@ -46,9 +46,17 @@ start (or restart) SkySpark.
 
 ### From GitHub ###
 
-**TO DO** (Adapt text from [nrelUtilityExt])
-
-[nrelUtilityExt]: https://github.com/NREL/nrelUtilityExt/
+1. Download a `nrelWattileExt.pod` release from GitHub.
+2. Copy `nrelWattileExt.pod` into the `lib/fan/` directory of your SkySpark
+   installation.
+3. Set ownership permissions correctly on the pod to match the other pods in
+   your SkySpark installation (Linux/Mac).
+4. From the command line, change directory to the SkySpark root directory.
+5. Execute `bin/fan docgen` to regenerate documentation.
+   - Optional; the functions will work without this step but the *Doc* app won't
+     show any function documentation.
+   - On Linux, you may need to `chmod +x bin/fan` first.
+6. Start (or restart) SkySpark.
 
 ### From StackHub ###
 
@@ -61,12 +69,12 @@ To use **nrelWattileExt**, you must have:
 
 1. [Docker] installed and working with SkySpark
 2. A local Docker image built from the [nrelWattileExt] repo registered with a
-   tag you can access from SkySpark (e.g. "wattile"); see *Docker* below
+   tag you can access from SkySpark (e.g. `"wattile"`); see *Docker* below
 
 [Docker]: https://www.docker.com/ "Docker"
 [nrelWattileExt]: https://github.com/NREL/nrelWattileExt "nrelWattileExt"
 
-**TO DO:** Put more instructions here? Or in `pod.fandoc`?
+For more information, see the **nrelWattileExt** documentation within SkySpark.
 
 Docker
 ------
@@ -119,9 +127,9 @@ stored in the [Trio]-formatted files within `lib/`:
 
 - `taskFuncs.trio`: Functions used to define Python interaction task(s)
 - `pythonFuncs.trio`: Functions for interacting with Python (internal use)
-- `supportFuncs.trio`: Other supporting functions (internal use)
-
-**TO DO:** Update/correct list above
+- `supportFuncs.trio`: Support and convenience functions for interacting with
+  Wattile models and their proxy records in SkySpark
+- `utilityFuncs.trio`: Other utility functions (internal use)
 
 The simplest development workflow is to import these functions into SkySpark,
 make changes *Code* app (and test via *Tools*), export back to Trio format, and
@@ -145,7 +153,7 @@ Resource Extension App Note].
 1. Launch SkySpark and log in with an admin or superuser account.
 
 2. Create a project to use for development and make it the active project.
-   (These instructions assume your project is named "wattile_test".)
+   (These instructions assume your project is named `"wattile_test"`.)
 
 3. Within the *Settings* app, *Exts* tab, enable:
 
@@ -160,6 +168,7 @@ Resource Extension App Note].
    - `taskFuncs.trio`
    - `pythonFuncs.trio`
    - `supportFuncs.trio`
+   - `utilityFuncs.trio`
 
 5. (Optional) Pick a marker (or "flag") tag to attach to each imported function
    to facilitate easy querying for later export. 
@@ -184,19 +193,19 @@ Resource Extension App Note].
    or query for them via the *Shell*:
    
    ```
-   readAll(func)
+   readAll(func) // All functions
    ```
    
    or
    
    ```
-   readAll(func and wattileDev)
+   readAll(func and wattileDev) // Flagged functions only
    ```
 
 Note that if any of the imported functions has a name conflict with an existing
 function, then both versions will now be present in your project database. You
 will need to manually resolve any conflicts by removing or renaming the
-duplicate function record(s).
+duplicate function record(s). Hint: check the function record `mod` tags.
    
 ### Exporting from SkySpark ###
 
@@ -258,11 +267,10 @@ Alternative Workflow:
 ### Test Environment ###
 
 The `test/` subdirectory contains resources and instructions for setting up a
-SkySpark test environment for developing and testing functions and workflows
-related to **nrelWattileExt**.
+minimal SkySpark test environment for developing and testing functions and workflows related to **nrelWattileExt**.
 
 License
 -------
 
-NREL internal use only
+NREL internal use only (but stay tuned!)
 
