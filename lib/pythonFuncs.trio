@@ -1,6 +1,7 @@
 name:wattilePythonEventCleanup
 func
-nodoc
+doc:
+  Clean up Wattile prediction event logs to prevent accumulation. Not intended to be called directly; instead use `wattilePythonTask()`.
 overridable
 src:
   (session, model) => do
@@ -37,7 +38,8 @@ src:
 ---
 name:wattilePythonInit
 func
-nodoc
+doc:
+  Initialize Wattile Python session. Not intended to be called directly; instead use `wattilePythonTask()`.
 overridable
 src:
   (session) => do
@@ -56,7 +58,8 @@ src:
 ---
 name:wattilePythonModelPredict
 func
-nodoc
+doc:
+  Execute a Wattile model prediction. Not intended to be called directly; instead use `wattilePythonTask()`.
 overridable
 src:
   (session, model, span) => do
@@ -236,7 +239,8 @@ src:
 ---
 name:wattilePythonModelSetup
 func
-nodoc
+doc:
+  Configure a Wattile model for use with SkySpark. Not intended to be called directly; instead use `wattilePythonTask()`.
 overridable
 src:
   (session, model) => do
