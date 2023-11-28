@@ -1,6 +1,6 @@
 name:toWattileModels
 doc:
-  Read all `wattileModel` records associated with the specified 'points'.
+  Read all `wattileModel` records associated with 'points'.
 func
 src:
   (points) => do
@@ -16,7 +16,7 @@ src:
 ---
 name:toWattilePoints
 doc:
-  Read all `wattilePoint` points associated with the specified 'wattileModels' via `wattileModelRef`.
+  Read all `wattilePoint` points associated with 'wattileModels' via `wattileModelRef`.
 func
 src:
   (wattileModels) => do
@@ -30,7 +30,7 @@ src:
 ---
 name:wattileExportTrainingData
 doc:
-  For the specified 'predictors', 'targets', and time 'span', export historical data to directory 'dir' for training Wattile models. 'predictors' and 'targets' are any inputs supported by `toRecList`; 'span' is any input supported by `toSpan`. The exported data are consistent with the training data input format required by [Wattile]`https://github.com/NREL/Wattile/blob/main/docs/Data_configs.md`.
+  For the specified 'predictors', 'targets', and time 'span', export historical data to directory 'dir' for training Wattile models. 'predictors' and 'targets' are any inputs supported by `toRecList()`; 'span' is any input supported by `toSpan()`. The exported data are consistent with the [training data input format]`https://github.com/NREL/Wattile/blob/main/docs/Data_configs.md` required by Wattile.
   
   Details
   -------
@@ -48,11 +48,14 @@ doc:
   The JSON configuration file consists of a single top-level dictionary containing five nested dictionaries:
   
   - 'dates': The data set 'start' and 'end' dates (timestamps)
-  - 'predictors': A list of predictor variables, including the following metadata for each:
+  - 'predictors': A list of predictor variables, including the following metadata for each, as available:
     - 'id': Unique identifier
-    - 'dis': Description; populated via `dis`
+    - 'dis': Display name; populated via `dis()`
     - 'column': Column name in CSV file(s)
     - 'unit': Unit
+    - 'maxVal': Maximum valid value
+    - 'minVal': Minimum valid value
+    - 'defVal': Default value; substituted automatically for out-of-range data
   - 'targets': A list of target variables, including at minimum
     the 'column' field and following the same conventions as 'predictors'
   - 'files': Provides a list of all CSV files in the data set, each as an dictionary
@@ -70,22 +73,22 @@ doc:
   
   Export behavior can be modified by control options passed via 'opts':
   
-  - 'appendUnits': Boolean; if 'true' then units will be appended to column names (Default = false)
-  - 'clean': Boolean; see `wattileReadHis` (Default = false)
-  - 'batch'; Integer; see `wattileReadHis` (Default = none)
-  - 'defVal': Number or NA; see `wattileReadHis` (Default = none)
-  - 'interpolate': Boolean; see `wattileReadHis` (Default = false)
-  - 'interval': Number; see `wattileReadHis` (Default = none)
-  - 'jsonVersion': Str; either 'v3' or 'v4'; see [Json]`docHaystack::Json` (Default = 'v3')
-  - 'name': Str; data set name to use in output files (Default = name of 'dir')
-  - 'preview': Boolean; if 'true' then return the data set configuration JSON without writing any files (Default = false)
-  - 'removeNA': Boolean; see `wattileReadHis` (Default = false)
-  - 'rollup': Boolean; see `wattileReadHis` (Default = false)
-  - 'splitBy': Str; One of "day", "week", "month", or "year" indicating the interval at which to split the data files (Default = no splitting)
-  - 'timeout': Number; see `wattileReadHis` (Default = none)
-  - 'warn': Boolean; see `wattileReadHis` (Default = true)
+  - 'appendUnits': [Boolean]`sys::Bool`; if 'true' then units will be appended to column names (Default = false)
+  - 'clean': [Boolean]`sys::Bool`; see `wattileReadHis()` (Default = false)
+  - 'batch'; [Integer]`haystack::Number`; see `wattileReadHis()` (Default = none)
+  - 'defVal': `haystack::Number` or `haystack::NA`; see `wattileReadHis()` (Default = none)
+  - 'interpolate': [Boolean]`sys::Bool`; see `wattileReadHis()` (Default = false)
+  - 'interval': `haystack::Number`; see `wattileReadHis()` (Default = none)
+  - 'jsonVersion': `sys::Str`; either 'v3' or 'v4'; see [Json]`docHaystack::Json` (Default = 'v3')
+  - 'name': `sys::Str`; data set name to use in output files (Default = name of 'dir')
+  - 'preview': [Boolean]`sys::Bool`; if 'true' then return the data set configuration JSON without writing any files (Default = false)
+  - 'removeNA': [Boolean]`sys::Bool`; see `wattileReadHis()` (Default = false)
+  - 'rollup': [Boolean]`sys::Bool`; see `wattileReadHis()` (Default = false)
+  - 'splitBy': `sys::Str`; One of "day", "week", "month", or "year" indicating the interval at which to split the data files (Default = no splitting)
+  - 'timeout': `haystack::Number`; see `wattileReadHis()` (Default = none)
+  - 'warn': [Boolean]`sys::Bool`; see `wattileReadHis()` (Default = true)
   
-  Boolean options may be also be passed as markers, with 'x' equivalent to 'x:true' and '-x' equivalent to 'x:false'.
+  Boolean options may be also be passed as [markers]`haystack::Marker`, with 'x' equivalent to 'x:true' and '-x' equivalent to 'x:false'.
   
   Pre-Processing
   --------------
@@ -268,37 +271,37 @@ src:
 ---
 name:wattileImportModels
 doc:
-  Imports records for Wattile model(s) located in 'dirs' and optionally commits them to the database. 'dirs' may be a single uri, a list of uris, a list of anything that can be parsed to a uri, or a grid with a 'uri' column.
+  Imports proxy records for Wattile model(s) located in 'dirs' and optionally commits them to the database. 'dirs' may be a single uri, a list of uris, a list of anything that can be parsed to a uri, or a grid with a 'uri' column.
   
   Each imported model is a dict with tags:
   
-  - 'wattileModel'
-  - 'wattilePredictors': Grid of predictor metadata (see [documentation]`ext-nrelWattile::doc#modelRecords`)
-  - 'wattileTargetRef': Optional ref to the prediction target (if available from 'predictors_target_config.json')
-  - 'uri': Path to the model directory
-  - 'unit': Optional unit for the prediction output
+  - `wattileModel`
+  - `wattilePredictors`: `haystack::Grid` of predictor metadata (see [documentation]`ext-nrelWattile::doc#proxy`)
+  - `wattileTargetRef`: Optional `haystack::Ref` to the prediction target (if available from 'predictors_target_config.json'; see [documentation]`ext-nrelWattile::doc#proxy`)
+  - `uri`: Path to the model directory
+  - `unit`: Optional unit for the prediction output
   
-  Does not populate optional tags 'dis', 'tz', or 'wattileReadOpts' (as this information is not currently included with Wattile models). Returns a list of model records.
+  Does not populate optional tags `dis`, `tz`, or `wattileReadOpts` (as this information is not currently included with Wattile models). Returns a list of model records.
   
   Options
   -------
   
   Import behavior can be modified by control options passed via 'opts':
   
-  - 'checked': Boolean; throw an error for invalid models (default = 'true')
-  - 'commit': Boolean; if 'true' commits the model records to the database (default = 'false')
+  - 'checked': [Boolean]`sys::Bool`; throw an error for invalid models (default = 'true')
+  - 'commit': [Boolean]`sys::Bool`; if 'true' commits the model records to the database (default = 'false')
   - 'conflict': Action on conflicts; one of "skip", "overwrite", "duplicate", or "error" (default = "error")
   
-  The 'checked', and 'commit' options may be also be passed as markers, with 'x' equivalent to 'x:true' and '-x' equivalent to 'x:false'.
+  The 'checked', and 'commit' options may be also be passed as [markers]`haystack::Marker`, with 'x' equivalent to 'x:true' and '-x' equivalent to 'x:false'.
   
   Conflicts
   ---------
   
-  Conflicts with existing 'wattileModel' records (matched by 'uri') are handled based on the 'conflict' option:
+  Conflicts with existing `wattileModel` records (matched by 'uri') are handled based on the 'conflict' option:
   
     - skip: Skip import
     - overwrite: Merge imported metadata onto existing record, overwriting it
-    - duplicate: Create a new 'wattileModel' record with duplicate 'uri'
+    - duplicate: Create a new `wattileModel` record with duplicate `uri`
     - error: Throw error
   
   Model Validation
@@ -439,24 +442,24 @@ src:
 ---
 name:wattileReadHis
 doc:
-  For the specified 'points' and time 'span', read and pre-process historical data for use with a Wattile model. 'points' is any input supported by `toRecList`; 'span' is any input supported by `toSpan`. Returns a history grid.
+  For the specified 'points' and time 'span', read and pre-process historical data for use with a Wattile model. 'points' is any input supported by `toRecList()`; 'span' is any input supported by `toSpan()`. Returns a history grid.
   
   Options
   -------
   
   Data pre-processing is controlled by the following options, passed via 'opts':
   
-  - 'clean': Boolean; if 'true' then data will be range-cleaned prior to export by removing values outside the range defined by each point's `minVal` and `maxVal` tags (Default = false)
-  - 'batch': Integer; optional batch size for XQuery; see below (Default = none)
-  - 'defVal': Number or NA; governs range cleaning behavior; see below (Default = none)
-  - 'interpolate': Boolean; if 'true' then data will be interpolated (Default = false)
-  - 'interval': Number; optional interval at which to interpolate and/or roll up the data (Default = none)
-  - 'removeNA': Boolean; if 'true' then NA values will be removed (Default = false)
-  - 'rollup': Boolean; if 'true' then a history rollup will be applied (Default = false)
-  - 'timeout': Number; optional timeout for `xq`; see below (Default = none)
-  - 'warn': Boolean; if 'true' log warnings; if 'false' suppress them (Default = true)
+  - 'clean': [Boolean]`sys::Bool`; if 'true' then data will be range-cleaned prior to export by removing values outside the range defined by each point's `minVal` and `maxVal` tags (Default = false)
+  - 'batch': [Integer]`haystack::Number`; optional batch size for XQuery; see below (Default = none)
+  - 'defVal': `haystack::Number` or `haystack::NA`; governs range cleaning behavior; see below (Default = none)
+  - 'interpolate': [Boolean]`sys::Bool`; if 'true' then data will be interpolated (Default = false)
+  - 'interval': `haystack::Number`; optional interval at which to interpolate and/or roll up the data (Default = none)
+  - 'removeNA': [Boolean]`sys::Bool`; if 'true' then NA values will be removed (Default = false)
+  - 'rollup': [Boolean]`sys::Bool`; if 'true' then a history rollup will be applied (Default = false)
+  - 'timeout': `haystack::Number`; optional timeout for XQuery; see below (Default = none)
+  - 'warn': [Boolean]`sys::Bool`; if 'true' log warnings; if 'false' suppress them (Default = true)
   
-  Boolean options may be also be passed as markers, with 'x' equivalent to 'x:true' and '-x' equivalent to 'x:false'. If 'rollup' is 'true', then 'interval' must also be specified.
+  Boolean options may be also be passed as [markers]`haystack::Marker`, with 'x' equivalent to 'x:true' and '-x' equivalent to 'x:false'. If 'rollup' is 'true', then 'interval' must also be specified.
   
   Range Cleaning
   --------------
@@ -477,23 +480,23 @@ doc:
   Interpolation
   -------------
   
-  If 'interpolate' is 'true', the entire history grid is interpolated via `hisInterpolate`, following SkySpark's normal interpolation rules. If the 'interval' option is also specified, then additional interpolation is performed *selectively* to ensure each interval of data contains at least one value for each input point. Interpolation is performed prior to rollup.
+  If 'interpolate' is 'true', the entire history grid is interpolated via `hisInterpolate()`, following SkySpark's normal interpolation rules. If the 'interval' option is also specified, then additional interpolation is performed *selectively* to ensure each interval of data contains at least one value for each input point. Interpolation is performed prior to rollup.
   
   Rollup
   ------
   
-  If the 'rollup' option is provided, data are rolled up at the specified 'interval' using `hisRollupAuto`.
+  If the 'rollup' option is provided, data are rolled up at the specified 'interval' using `hisRollupAuto()`.
   
   Handling Large History Reads
   ----------------------------
   
-  Large or computationally-intensive history reads from remote projects can cause unexpected XQuery behavior, such as silent timeouts or keep-alive resets of the Arcbeam websocket. When this happens, you may see the an error message like this:
+  Large or computationally-intensive history reads from remote projects can cause unexpected XQuery behavior, such as silent timeouts or keep-alive resets of the Arcbeam websocket. When this happens, you may see an error message like this:
   
     Expected X points; XQuery returned Y.
   
   Two options can help:
   
-  - 'timeout' is passed through to `xq`; increase it to allow XQueries more time to complete
+  - 'timeout' is passed through to `xq()`; increase it to allow each XQuery more time to complete
   - 'batch' sets the maximum number of points read per XQuery; decrease it to spread out the history reads over more XQueries
   
   Note: smaller 'batch' size reduces the chance of individual XQuery failures but increases both the total number of XQueries and the total function execution time.
@@ -779,11 +782,9 @@ doc:
   - 'overwrite': Boolean; allows existing history to be overwritten (ignores 'hisEnd') (default = 'false')
   - 'progress': Boolean; report task progress via `taskProgress` (default = 'true')
   
-  Boolean options may be also be passed as markers, with 'x' equivalent to 'x:true' and '-x' equivalent to 'x:false'. If 'forecastOnly = true', the 'forecast' option is ignored. To avoid warning spam in the logs, the 'overwrite' and 'hotPeriod' options also set the `hisWrite` 'noWarn' flag.
+  Boolean options may be also be passed as [markers]`haystack::Marker`, with 'x' equivalent to 'x:true' and '-x' equivalent to 'x:false'. If 'forecastOnly = true', the 'forecast' option is ignored. To avoid warning spam in the logs, the 'overwrite' and 'hotPeriod' options also set the `hisWrite` 'noWarn' flag.
   
-  Model-specific sync options may also be defined via the `wattileSyncOpts` tag
-  on a `wattileModel` record. Model-specific sync options apply to all points
-  associated with that model and override values provided in 'opts'.
+  Model-specific sync options may also be defined via the `wattileSyncOpts` tag on a `wattileModel` record. Model-specific sync options apply to all points associated with that model and override values provided in 'opts'.
   
   Forecasts
   ---------
@@ -798,7 +799,7 @@ doc:
   - Start of span: Equals the earliest 'hisEnd' among points in the group or the beginning of the hot period, whichever is earlier
   - End of span: Equals the output of `now` minus 'delay' or the start of span plus 'limit' (when specified), whichever is earlier
   
-  When this function is called from a task or job to keep predictions up-to-date, best practice is to specify 'limit' to avoid extremely large sync batches.
+  Note that any points without existing history ('hisEnd' equal to Null) are ignored when using a calculated span. When this function is called from a task or job to keep predictions up-to-date, best practice is to also specify 'limit' to avoid extremely large sync batches.
   
   Sync Delay
   ----------
