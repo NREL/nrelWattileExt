@@ -1,5 +1,285 @@
-Overview [#over]
-****************
+Overview [#overview]
+********************
 
-This file will, in the future, contain extension-level documentation for
-**nrelWattileExt**.
+The NREL Wattile extension, **nrelWattileExt**, provides an interface for 
+[Wattile]`https://github.com/NREL/wattile/`, a [Python]`https://www.python.org/`
+package for probabilistic prediction of building energy consumption. This
+extension is developed and maintained by the [National Renewable Energy
+Laboratory]`https://www.nrel.gov`.
+
+- [Release notes]`https://github.com/NREL/nrelWattileExt/releases`
+- [Change log]`https://github.com/NREL/nrelWattileExt/blob/main/CHANGELOG.md`
+- Report issues [here]`https://github.com/NREL/nrelWattileExt/issues`
+
+Wattile models predict discrete quantiles of the probability distribution of a
+target quantity (typically energy consumption) using the historical time series
+data from one or more predictors (typically weather data).
+
+Architecture [#architecture]
+****************************
+
+SkySpark runs Wattile within a Docker container using the SkySpark
+`ext-py::index` extension. Interacting with and syncing predictions from a
+Wattile model requires five elements:
+
+1. A [Docker]`ext-docker::index` image containing Wattile
+2. A `ext-task::index` for interacting with the Docker image
+3. A trained [Wattile model]`https://github.com/NREL/Wattile/#available-models`
+4. A Wattile model [proxy record]`ext-nrelWattile::doc#proxy`
+5. One or more [Wattile points]`ext-nrelWattile::doc#wattilePoint` that receive
+   predictions from the Wattile model
+
+Docker Container [#docker]
+==========================
+
+For compatibility with SkySpark's `ext-py::index` library, the Wattile Docker
+image is built on top of the [Hxpy]`https://haxall.io/doc/lib-py/doc` image. At
+this time, the Wattile Docker image for SkySpark is not distributed via a public
+Docker image registry. To build and install the image, follow [these
+instructions]`https://github.com/NREL/nrelWattileExt/blob/main/#docker`.
+
+Task [#task]
+===================
+
+The NREL Wattile extension uses the `ext-py::index` library's [persistent
+sessions]`ext-py::doc#persistent` feature to maintain an open Python session
+with the Wattile package loaded. This requires creating a dedicated Wattile
+Python task. The `wattilePythonTask()` function handles interaction between
+SkySpark and the Wattile Python session. Therefore, the task record should look
+something like this:
+
+  dis: "Wattile Python Task"
+  task
+  taskExpr: wattilePythonTask
+  wattileTask
+  
+To use `wattilePythonTask()` with a named Docker image other than '"wattile"'
+(the default), instead use:
+  
+  taskExpr: (msg) => wattilePythonTask(msg, "myWattileImage")
+  
+*Note: While the `wattileTask` tag is not required, its use is recommended
+because it allows the dedicated Wattile Python task to be queried easily:
+'read(wattileTask)'*
+
+Wattile Models [#model]
+=======================
+
+A trained Wattile model consists of a set of related files stored within a
+single directory, including:
+
+- 'configs.json': Model configuration parameters
+- 'predictors_target_config.json': List of model input points (predictors) and
+  the model target (point being predicted)
+- Various data files
+
+For use with SkySpark, a Wattile model's 'predictors_target_config.json' *must*
+provide the `id` of each SkySpark predictor point needed to execute the model.
+Typically, this information is provided to the Wattile model as part of the
+[training data set]`ext-nrelWattile::doc#training`.
+
+Each Wattile model must have its own subdirectory within the project's 'io'
+directory; otherwise it will not be accessible to either SkySpark or the Wattile
+Python session (see `ext-io::doc#handles`). Recommended practice is to organize
+all Wattile models within 'io/wattile/'.
+
+Model Proxy Records [#proxy]
+============================
+
+Each Wattile model requires a corresponding SkySpark `wattileModel` proxy record
+that stores configuration information about the model. `wattileModel` records
+have tags:
+
+- `wattileModel`
+- `wattilePredictors`: `haystack::Grid` of predictor metadata
+- `wattileTargetRef`: `haystack::Ref` to the prediction target
+- `wattileReadOpts`: Options `haystack::Dict` compatible with `wattileReadHis()`
+- `dis`: Display name for the model
+- `tz`: Time zone of model prediction output
+- `unit`: Units of model prediction output
+- `uri`: Path to the model directory
+
+`wattileModel`, `uri`, and `wattilePredictors` are required; all other tags are
+optional.
+
+Model Predictors [#predictors]
+------------------------------
+
+The `wattilePredictors` grid maps SkySpark predictor points to Wattile
+model input data columns. The predictor grid has columns:
+
+- 'id': Unique `id` of SkySpark point for each predictor (required)
+- 'column': Predictor column name in the Wattile input data frame (required)
+- 'dis': Display name of predictor
+- 'minVal': Used for range cleaning by `wattileReadHis()`
+- 'maxVal': Used for range cleaning by `wattileReadHis()`
+- 'defVal': Used for range cleaning by `wattileReadHis()`
+- 'unit': Unit for Wattile input
+
+'id' and 'column' are required for every predictor; other columns are optional.
+
+Model Target [#target]
+----------------------
+
+`wattileTargetRef`, if present, associates the Wattile model with its target
+point, that is, the point whose value the model predicts. If the model proxy
+record is missing the `unit` and/or `tz` tags, the prediction workflow uses the
+target point's `unit` and/or `tz` instead.
+
+Predictor History Read Options [#readOpts]
+------------------------------------------
+
+`wattileReadOpts` controls predictor data cleaning and pre-processing performed
+by `wattileReadHis()` during prediction. Best practice is to use the same
+options that were applied to the [training]`ext-nrelWattile::doc#training` data;
+these are captured in the 'export_options' dictionary in the JSON configuration
+file exported by `wattileExportTrainingData()`.
+
+Model Import [#import]
+----------------------
+
+The `wattileImportModels()` function imports Wattile model proxy records from
+Wattile model directories by reading configuration information from
+'configs.json' and 'predictors_target_config.json'. For example:
+
+  // Import proxy records for Wattile model subdirectories within `io/wattile/`
+  ioDir(`io/wattile/`).wattileImportModels()
+  
+To also commit the imported records:
+
+  ioDir(`io/wattile/`).wattileImportModels({commit:true})
+
+Model Setup [#setup]
+--------------------
+
+Once the models have been imported to SkySpark, the '"setup"' action must be run
+for each model using the Wattile Python task. For example:
+
+  // Run model setup for all Wattile models 
+  readAll(wattileModel).each() model => do
+    read(wattileTask).taskSend({action:"setup", model:model}).futureGet
+  end
+
+This action configures each model for executing predictions.
+
+Point Records [#wattilePoint]
+=============================
+
+During a [prediction sync]`ext-nrelWattile::doc#predictionSync`, `wattilePoint`
+points receive and store prediction history from Wattile models. Each
+`wattilePoint` has tags:
+
+- `wattilePoint`
+- `wattileModelRef`: `haystack::Ref` to the associated `wattileModel`
+- `wattileQuantile`: Quantile of the prediction output associated with the
+  point; must be a `haystack::Number` between 0 and 1
+
+To successfully receive predictions during a sync, each point's
+`wattileQuantile` must match a discrete quantile predicted by the Wattile model,
+as determined by the model's configuration.
+
+Training [#training]
+********************
+
+Model training occurs offline, outside of SkySpark. Steps to train Wattile
+models from SkySpark data:
+
+1. Identify the predictor and target points.
+2. Call `wattileExportTrainingData()` with the predictors, target(s), time span
+   for the training data, output directory, and any desired data pre-processing
+   or export options.
+3. Copy the exported training data set to the computer that will be used to
+   train the Wattile model(s).
+4. Train each model following the Wattile package documentation. **TO DO: What
+   is the best link for documenting how to train a model? Link here.**
+
+When data sets originate from SkySpark via `wattileExportTrainingData()`,
+Wattile stores the required predictor and target metadata in
+'predictors_target_config.json' for later retrieval. Therefore, once trained,
+the Wattile models can be copied to the SkySpark 'io' directory and imported
+to SkySpark using the workflow described [above]`ext-nrelWattile::doc#proxy`.
+
+*Note: `wattileExportTrainingData()` supports exporting data for multiple
+targets, so the same data set can be used to train multiple models.*
+
+Prediction [#prediction]
+************************
+
+The `wattilePythonTask()` '"predict"' action executes a Wattile model and
+returns the predicted quantiles. For example:
+
+  // Execute a prediction using a Wattile model
+  read(wattileTask)
+    .taskSend({
+      action: "predict",
+      model: read(wattileModel and dis=="My Model"),
+      span: yesterday()
+    })
+    .futureGet
+
+Internally, the prediction workflow follows these steps:
+
+1. Loads the model's grid of predictor points.
+2. Loads the model configuration from disk.
+3. Instantiates the Wattile model in Python.
+4. Configures the model to predict the requested time span.
+5. Reads and pre-processes predictor history via `wattileReadHis()`.
+6. Transfers the predictor history to a Python data frame.
+7. Executes data preparation in Python (this includes time alignment and feature
+   extraction).
+8. Executes the Wattile model's 'predict()' method in Python.
+9. Returns the preduction results to SkySpark.
+
+The '"predict"' action returns a `haystack::Grid` of prediction
+data; see `wattilePythonTask()` for details.
+
+Prediction Sync [#predictionSync]
+=================================
+
+The `wattileSyncHis()` function uses the '"predict"' action to automatically
+sync Wattile predictions to SkySpark point history, mapping points to Wattile
+models using their `wattileModelRef` tags. `wattileSyncHis()` must have access
+to the dedicated Wattile Python task and is designed to run as its own scheduled
+task. For example, the following task syncs predictions for all `wattilePoint`
+points every 15 minutes:
+
+  // Wattile Prediction Sync Task
+  dis: "Wattile Prediction Point Sync"
+  obsSchedule
+  obsScheduleFreq: 15min
+  task
+  taskExpr:
+    wattileSyncHis(
+      readAll(wattilePoint),  // Points
+      read(wattileTask),      // Task
+      null,                   // Automatic span
+      {limit:15day, forecast} // Options
+    )
+
+Prediction sync behavior is highly configurable; see `wattileSyncHis()` for
+configuration options and their effects. For example, the 'limit' option above
+restricts predictions to blocks of 15 days at a time, which prevents executing
+Wattile models with excessively large input data sets.
+
+Before an automatic span can be used (by setting 'span' to Null), `wattilePoint`
+histories must be initialized using a non-Null 'span'. For example:
+
+  taskRun(
+    wattileSyncHis(
+      readAll(wattilePoint and not hisEnd), // Uninitialized points
+      read(wattileTask),                    // Task
+      2020-01-01,                           // Initial span; modify as desired
+      {limit:1day}                          // Options
+    )
+  ).futureGet
+
+Remember to check that each point has history (non-Null 'hisEnd') after running
+this initial sync.
+
+Example [#example]
+******************
+
+**TO DO: Create an example using the SkySpark demo project. Train this model
+and make it available either in the Wattile repo or the nrelWattileExt repo.
+Create a step-by-step example here for how to import, set up, and use the
+model?**
