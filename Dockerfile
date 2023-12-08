@@ -9,9 +9,11 @@ ARG GROUP_NAME=skyspark
 # Clone Wattile
 RUN apt-get -y update; apt-get -y install curl
 RUN mkdir /wattile
-RUN if [[ -z "$WATTILE_BRANCH" ]]; then \
+RUN if [ -n "$WATTILE_BRANCH" ]; then \
+        echo "Downloading from: https://github.com/NREL/Wattile/archive/${WATTILE_BRANCH}.tar.gz"; \
         curl -L https://github.com/NREL/Wattile/archive/${WATTILE_BRANCH}.tar.gz | tar zx -C /wattile  --strip-components 1; \
     else \
+        echo "Downloading from: https://github.com/NREL/Wattile/archive/refs/tags/${WATTILE_RELEASE}.tar.gz"; \
         curl -L https://github.com/NREL/Wattile/archive/refs/tags/${WATTILE_RELEASE}.tar.gz | tar zx -C /wattile  --strip-components 1; \
     fi
 
