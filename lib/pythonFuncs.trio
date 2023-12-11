@@ -135,7 +135,7 @@ src:
   
     // Instantiate model
     session.pyExec("model = ModelFactory.create_model(configs)")
-  
+    
     // Determine read time span for prediction
     if (spanStart == spanEnd) do
       // Single timestep
@@ -154,10 +154,16 @@ src:
         .pyExec("input_end = model.get_input_window_for_output_time(last_prediction_time)[1]")
     end
     readSpan: session.pyEval("input_start")..session.pyEval("input_end")
-  
+    
     // Read and prepare data: see wattileReadHis()
     data: wattileReadHis(predictors, readSpan, readOpts)
     
+    // TO DO: Remove the UTC conversion when time zones are properly handled by Wattile
+    // (Tested 12/9/2023: still needed; see https://github.com/NREL/nrelWattileExt/issues/47)
+    
+    // Convert timestamps to UTC
+    data = data.map(row => row.set("ts", row->ts.toTimeZone("UTC")))
+  
     // Adjust model config start/end times (Temporary? Avoids dropping data.)
     session
       .pyExec("configs['data_input']['start_time'] = input_start.isoformat()")
@@ -189,23 +195,23 @@ src:
       .pyExec("predictor_data_frame = predictor_data_frame.rename(columns=column_specification)")
       .pyExec("predictor_data_frame[configs['data_input']['target_var']] = -999") // Temporary; prevents dropping rows
   
+    // TO DO: Remove the placeholder target var once Wattile supports prediction without it
+    // (Tested 12/15/2022 with Wattile build from main: still needed)
+  
     // NA type conversion
     session
       .pyExec("notNA = predictor_data_frame.applymap(lambda v: not isinstance(v, hxpy.haystack.na.NA))")
       .pyExec("predictor_data_frame = predictor_data_frame.where(notNA, pandas.NA)")
   
-    // TO DO: Remove the placeholder target var once Wattile supports that
-    // (Tested 12/15/2022 with Wattile build from main: still needed)
-    
     // Prep data and run prediction
     session
       .pyExec("_, val_df = prep_for_rnn(configs, predictor_data_frame)")
       .pyExec("results = model.predict(val_df)")
-  
+    
     // Return tidy results:
     //   1. Convert to Pandas series (with multi-index)
     //   2. Convert to Pandas data frame (still with multi-index)
-    //   3. Convert index to data frame columns
+    //   3. Convert index to data frame columns (de-index)
     //   4. Add prediction timestamp as nominal timestamp + horizon
     //   5. Convert horizon to numeric in seconds
     results: session
