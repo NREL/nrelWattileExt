@@ -3,8 +3,14 @@ FROM ghcr.io/haxall/hxpy:latest
 # Build Arguments
 ARG WATTILE_BRANCH
 ARG WATTILE_RELEASE=0.1.0
-ARG USER_NAME=skyspark
-ARG GROUP_NAME=skyspark
+ARG HOST_UID
+ARG HOST_GID
+ARG USER_NAME=containeruser
+ARG GROUP_NAME=containeruser
+
+# Create UID + GID environment variables and assign the values from the build arguments.
+ENV HOST_UID=$HOST_UID \
+    HOST_GID=$HOST_GID
 
 # Clone Wattile
 RUN apt-get -y update; apt-get -y install curl
@@ -25,7 +31,9 @@ ENV PYTHONPATH=${PYTHONPATH}:${PWD}
 RUN cd /wattile && pip install .
 
 # Non-Root User/Group
-RUN groupadd -r ${GROUP_NAME} && useradd -r -g ${GROUP_NAME} ${USER_NAME}
+RUN addgroup --gid $HOST_GID $GROUP_NAME
+RUN adduser --uid $HOST_UID --gid $HOST_GID --gecos "" --disabled-password $USER_NAME
+
 USER ${USER_NAME}
 
 ENTRYPOINT ["python"]
