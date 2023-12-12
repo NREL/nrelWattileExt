@@ -100,8 +100,11 @@ To build the required Docker image containing [Wattile]:
    or
    
    ```
-   docker build --build-arg="WATTILE_BRANCH=branch" --tag="wattile" .
+   docker build --no-cache --build-arg="WATTILE_BRANCH=branch" --tag="wattile" .
    ```
+   
+   (The `--no-cache` option is used here to ensure that you do not accidentally
+   build from an outdated, cached local copy of the repository.)
 
 If you did not build the Docker image on the same system where SkySpark runs,
 you will also need to copy and install the Docker image on your SkySpark system:
