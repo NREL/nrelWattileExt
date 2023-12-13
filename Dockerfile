@@ -3,8 +3,8 @@ FROM ghcr.io/haxall/hxpy:latest
 # Build Arguments
 ARG WATTILE_BRANCH
 ARG WATTILE_RELEASE=0.1.0
-ARG HOST_UID
-ARG HOST_GID
+ARG HOST_UID=1022
+ARG HOST_GID=1022
 ARG USER_NAME=containeruser
 ARG GROUP_NAME=containeruser
 
@@ -30,10 +30,9 @@ ENV PYTHONPATH=${PYTHONPATH}:${PWD}
 # Install Dependices
 RUN cd /wattile && pip install .
 
-# Non-Root User/Group
+# Create the group and user defined above, then run as the specified user
 RUN addgroup --gid $HOST_GID $GROUP_NAME
 RUN adduser --uid $HOST_UID --gid $HOST_GID --gecos "" --disabled-password $USER_NAME
-
 USER ${USER_NAME}
 
 ENTRYPOINT ["python"]
