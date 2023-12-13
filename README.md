@@ -85,38 +85,24 @@ To build the required Docker image containing [Wattile]:
 2. Clone the [nrelWattileExt] repository branch or release corresponding to your
    current **nrelWattileExt** version
 3. From the repository root directory, run:
-
+     
    ```
-      docker build \
-         --no-cache \
-         --build-arg HOST_UID="$(id -u)" \
-         --build-arg HOST_GID="$(id -g)" \
-         --tag="wattile" .
+   docker build --tag="wattile" .
    ```
-
+   
    Optionally, to specify a Wattile release version or branch other than
    the default:
-
+   
    ```
-      docker build \
-         --no-cache \
-         --build-arg HOST_UID="$(id -u)" \
-         --build-arg HOST_GID="$(id -g)" \
-         --build-arg="WATTILE_RELEASE=X.Y.Z"
-         --tag="wattile" .
+   docker build --build-arg="WATTILE_RELEASE=X.Y.Z" --tag="wattile" .
    ```
-
+   
    or
-
+   
    ```
-      docker build \
-         --no-cache \
-         --build-arg HOST_UID="$(id -u)" \
-         --build-arg HOST_GID="$(id -g)" \
-         --build-arg="WATTILE_BRANCH=branch"
-         --tag="wattile" .
+   docker build --no-cache --build-arg="WATTILE_BRANCH=branch" --tag="wattile" .
    ```
-
+   
    (The `--no-cache` option is used here to ensure that you do not accidentally
    build from an outdated, cached local copy of the repository.)
 
@@ -128,6 +114,58 @@ you will also need to copy and install the Docker image on your SkySpark system:
 3. Run `docker load --input /path/to/wattile.tar.gz`
 
 The Docker image is now ready for use with SkySpark.
+
+### Linux User Permissions ###
+
+When running a Docker container based on [Hxpy]`https://haxall.io/doc/lib-py/doc`,
+SkySpark mounts the project `io/` directory within the Docker container at
+`/io/`. When SkySpark is running on Linux, permissions conflicts arise if the
+user ID (UID) and group ID (GID) of the user running SkySpark do not match the
+UID and GID of the user running Wattile within the Docker container: files and
+folders owned by the SkySpark user may not be readable and writable by the
+Wattile user and vice versa.
+
+**Therefore, when SkySpark is running on Linux, you must use one of the
+following options to ensure SkySpark and Wattile share file access:**
+
+1. Build the Docker image such that the container user has the same UID and GID
+   as the host system's SkySpark user. If building the image on the host system,
+   use:
+   
+   ```
+      docker build \
+         --build-arg HOST_UID="$(id -u)" \
+         --build-arg HOST_GID="$(id -g)" \
+         ...
+   ```
+   
+   Where `...` represents the remaining build options or arguments (see above).
+   
+   If building the image on a different system, first identify the UID and GID
+   of the SkySpark user be executing the `id` command on the host system. Then,
+   with the `uid` and `gid` numbers from the host system, run:
+   
+   ```
+      docker build \
+         --build-arg HOST_UID="uid" \
+         --build-arg HOST_GID="gid" \
+         ...
+   ```
+   
+   This is the recommended option.
+
+2. Run SkySpark as a user whose UID and GID match the defaults from Wattile
+   Docker image:
+   
+   - UID = 1022
+   - GID = 1022
+   
+   This option will work, but changing the SkySpark user may have unintended
+   consequences (such as breaking access permissions for existing files).
+   
+3. Modify ownership for the `io/` directory to be readable and writable by
+   others: `chmod o+wrx /path/to/io/`. This option will also work but is
+   discouraged for security reasons.
 
 Documentation
 -------------
