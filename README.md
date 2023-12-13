@@ -117,13 +117,14 @@ The Docker image is now ready for use with SkySpark.
 
 ### Linux User Permissions ###
 
-When running a Docker container based on [Hxpy]`https://haxall.io/doc/lib-py/doc`,
-SkySpark mounts the project `io/` directory within the Docker container at
-`/io/`. When SkySpark is running on Linux, permissions conflicts arise if the
-user ID (UID) and group ID (GID) of the user running SkySpark do not match the
-UID and GID of the user running Wattile within the Docker container: files and
-folders owned by the SkySpark user may not be readable and writable by the
-Wattile user and vice versa.
+When running a Docker container based on [Hxpy], SkySpark mounts the project
+`io/` directory within the Docker container at `/io/`. When SkySpark is running
+on Linux, permissions conflicts arise if the user ID (UID) and group ID (GID) of
+the user running SkySpark do not match the UID and GID of the user running
+Wattile within the Docker container: files and folders owned by the SkySpark
+user may not be readable and writable by the Wattile user and vice versa.
+
+[Hxpy]: https://haxall.io/doc/lib-py/doc "Hxpy"
 
 **Therefore, when SkySpark is running on Linux, you must use one of the
 following options to ensure SkySpark and Wattile share file access:**
