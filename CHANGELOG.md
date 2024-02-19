@@ -12,8 +12,7 @@ This file tracks notable changes to **nrelWattileExt**. The format is based on
 
 ### Added
 
-- First release of **nrelWattileExt**! For use with [Wattile] version X.Y
-
-**TO DO:** Add correct version of Wattile above. Probably 0.2
+- First release of **nrelWattileExt**! For use with [Wattile]
+  [v0.2](https://github.com/NREL/Wattile/releases/tag/0.2.0)
 
 [Wattile]: https://github.com/NREL/wattile/ "Wattile"
