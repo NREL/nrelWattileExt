@@ -7,21 +7,21 @@ src:
   (session, model) => do
     // Temporary: remove event logs to prevent accumulation
     // Eventually, this should be fixed in Wattile itself
-  
+
     // Get local directory uri from model record
     uri: (model.toRec)["uri"]
-  
+
     // Convert absolute to relative Uri; see wattilPythonModelSetup()
     if (uri.toStr.startsWith("/")) uri = uriPath(uri)[2..-1].pathToUri.uriPlusSlash
-  
+
     // List event files
     eventFiles: ioDir(uri)
       .findAll(f => f->name.startsWith("events.out.tfevents."))
       .colToList("name")
-  
+
     // No files to remove?
     if (eventFiles.isEmpty) return "No event files to delete."
-  
+
     // Use Python to remove files
     session
       .pyExec("import os")
@@ -31,7 +31,7 @@ src:
       .pyExec("""for f in event_file_paths:
                    if os.path.isfile(f):
                      os.remove(f)""")
-  
+
     // Return number of files removed
     session.pyEval("'Deleted ' + str(len(event_file_paths)) + ' event files.'")
   end
@@ -65,15 +65,15 @@ src:
   (session, model, span) => do
     // Get predictors
     predictors: model->wattilePredictors
-  
+
     // Prediction time span start/end
     spanStart: span.toSpan.start
     spanEnd: span.toSpan.end
-  
+
     // Resolve target
     if (model.has("wattileTargetRef")) do
       target: xq().xqReadByIdsList(model->wattileTargetRef).xqExecute
-  
+
       // Verify target
       if (target.isEmpty) do
         logWarn(
@@ -87,7 +87,7 @@ src:
         target = target.first
       end
     end
-  
+
     // Prediction units: from model, fallback to target
     if (model.has("unit")) do
       predUnit: model->unit
@@ -96,7 +96,7 @@ src:
     else do
       predUnit: null
     end
-  
+
     // Prediction timezone: from model, fallback to target
     if (model.has("tz")) do
       predTz: model->tz
@@ -105,10 +105,10 @@ src:
     else do
       predTz: null
     end
-  
+
     // Load model config
     modelConfig: ioReadJson(model->uri + "configs.json")
-  
+
     // Verify model configuration
     if (modelConfig->learning_algorithm->use_case != "prediction") do
       throw "Model " + model.recDisWithId +
@@ -118,24 +118,24 @@ src:
       throw "Model " + model.recDisWithId +
         " directory mismatch. Did you run model setup?"
     end
-  
+
     // Load history read options
     if (model.has("wattileReadOpts")) do
       readOpts: model->wattileReadOpts
     else do
       readOpts: {} // Use defaults
     end
-  
+
     // Load model configuration
     session
       .pyDefine("model_dir", modelConfig->data_output->exp_dir)
       .pyExec("configs_path = pathlib.Path(model_dir) / 'configs.json'")
       .pyExec("""with open(configs_path, 'r', encoding='utf-8') as f:
                      configs = json.load(f)""")
-  
+
     // Instantiate model
     session.pyExec("model = ModelFactory.create_model(configs)")
-    
+
     // Determine read time span for prediction
     if (spanStart == spanEnd) do
       // Single timestep
@@ -154,24 +154,24 @@ src:
         .pyExec("input_end = model.get_input_window_for_output_time(last_prediction_time)[1]")
     end
     readSpan: session.pyEval("input_start")..session.pyEval("input_end")
-    
+
     // Read and prepare data: see wattileReadHis()
     data: wattileReadHis(predictors, readSpan, readOpts)
-    
+
     // TO DO: Remove the UTC conversion when time zones are properly handled by Wattile
     // (Tested 12/9/2023: still needed; see https://github.com/NREL/nrelWattileExt/issues/47)
-    
+
     // Convert timestamps to UTC
     data = data.map(row => row.set("ts", row->ts.toTimeZone("UTC")))
-  
+
     // Adjust model config start/end times (Temporary? Avoids dropping data.)
     session
       .pyExec("configs['data_input']['start_time'] = input_start.isoformat()")
       .pyExec("configs['data_input']['end_time'] = input_end.isoformat()")
-  
+
     // TO DO: Remove this once predict() handles it automatically
     // (Tested 12/15/2022 with Wattile build from main: still needed)
-  
+
     // Get column name specification for SkySpark -> Python conversion
     getSkySparkColName: (column) => name(column)
     getPythonColName: (column) => do
@@ -182,38 +182,40 @@ src:
     columnSpec: data
       .gridColsToDict(getSkySparkColName, getPythonColName)
       .findAll(v => v != null)
-  
+
     // Load data into Python
     session
       .pyDefine("predictor_grid", data)
       .pyExec("predictor_data_frame = predictor_grid.to_dataframe()") // Pandas data frame
       .pyExec("predictor_data_frame = predictor_data_frame.set_index('ts')")
-  
+
     // Rename columns
     session
       .pyDefine("column_specification", columnSpec)
       .pyExec("predictor_data_frame = predictor_data_frame.rename(columns=column_specification)")
       .pyExec("predictor_data_frame[configs['data_input']['target_var']] = -999") // Temporary; prevents dropping rows
-  
+
     // TO DO: Remove the placeholder target var once Wattile supports prediction without it
     // (Tested 12/15/2022 with Wattile build from main: still needed)
-  
-    // Update configs with stored predictor columns
+
+    // Update configs with stored predictor columns and ensure col order
+    // matches what is found in the predictors data frame
     session
-      .pyExec("configs['data_input']['predictor_columns'] = list(column_specification.values())")
-    
+      .pyDefine("predictor_columns", predictors.colToList("column"))
+      .pyExec("configs['data_input']['predictor_columns'] = predictor_columns")
+
     // TO DO: In the future, will this be handled automatically by Wattile loading from predictors_target_config.json?
-    
+
     // NA type conversion
     session
       .pyExec("notNA = predictor_data_frame.applymap(lambda v: not isinstance(v, hxpy.haystack.na.NA))")
       .pyExec("predictor_data_frame = predictor_data_frame.where(notNA, pandas.NA)")
-  
+
     // Prep data and run prediction
     session
       .pyExec("_, val_df = prep_for_rnn(configs, predictor_data_frame)")
       .pyExec("results = model.predict(val_df)")
-  
+
     // Return tidy results:
     //   1. Convert to Pandas series (with multi-index)
     //   2. Convert to Pandas data frame (still with multi-index)
@@ -225,26 +227,26 @@ src:
       .pyExec("tidy_results['pred_ts'] = tidy_results['timestamp'] + tidy_results['horizon']")
       .pyExec("tidy_results['horizon'] = tidy_results['horizon'].map(lambda h: h.total_seconds())")
       .pyEval("tidy_results")
-  
+
     // Post-processing
     results = results.map() row => do
       // Units for horizon
       row = row.set("horizon", row->horizon.as("s"))
-  
+
       // Units for predicted values
       row = row.set("pred_val", row->pred_val.as(predUnit))
-  
+
       // Handle timezone
       if (predTz != null) do
         row = row
           .set("timestamp", row->timestamp.toTimeZone(predTz))
           .set("pred_ts", row->pred_ts.toTimeZone(predTz))
       end
-  
+
       // Return
       return row
     end
-  
+
     // Reorder columns and return results
     results.reorderCols(["timestamp", "horizon", "quantile", "pred_ts", "pred_val"])
   end
@@ -258,50 +260,50 @@ src:
   (session, model) => do
     // Get local directory uri from model record
     uri: (model.toRec)["uri"]
-  
+
     // Verify uri is a directory, exists, and is not empty
     if (uri.isNull) throw "Model must have a valid 'uri' tag"
     if (not uriIsDir(uri)) throw "Uri `" + uri.toStr + "` is not a directory"
     if (ioDir(uri).isEmpty) throw "Model directory `" + uri.toStr + "` is empty or does not exist"
-  
+
    // Convert absolute to relative Uri
     if (uri.toStr.startsWith("/")) do
       // Verify absolute uri is for the active project
       // Convention is /proj/{projName}/io/...
       modelProj: uriPath(uri)[1]
-  
+
       if (modelProj != context()->projName) do
         throw "Wattile model directory must be in the active project"
       end
-  
+
       // Convert to relative Uri mounted at `io/`
       uri = uriPath(uri)[2..-1].pathToUri.uriPlusSlash
     end
-  
+
     // Load model config in Python
     session
       .pyDefine("model_dir", "/" + uri.toStr)
       .pyExec("configs_path = pathlib.Path(model_dir) / 'configs.json'")
       .pyExec("""with open(configs_path, 'r', encoding='utf-8') as f:
                      configs = json.load(f)""")
-  
+
     // Update configs: model directory, prediction use case
     session
       .pyExec("configs['data_output']['exp_dir'] = model_dir") // Temporary?
       .pyExec("configs['learning_algorithm']['use_case'] = 'prediction'") // Temporary
-  
+
     // TO DO: Remove setting 'exp_dir' manually if/when the model constructor
     // sets it automatically to match the current path.
-  
+
     // TO DO: Remove manually setting 'use_case' to "prediction" once Wattile supports it
     // Right now, 'use_case' is used by prep_for_rnn() in addition to the predict() method,
     // and therefore must still be set to "prediction" or things go sideways.
-  
+
     // Save configs
     session
       .pyExec("""with open(configs_path, 'w', encoding='utf-8') as f:
                      json.dump(configs, f, indent = 2)""")
-  
+
     // Return "ok" (from Python to verify it all worked)
     session.pyEval("'ok'")
   end
