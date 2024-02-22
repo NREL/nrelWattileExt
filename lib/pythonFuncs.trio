@@ -198,6 +198,12 @@ src:
     // TO DO: Remove the placeholder target var once Wattile supports prediction without it
     // (Tested 12/15/2022 with Wattile build from main: still needed)
   
+    // Update configs with stored predictor columns
+    session
+      .pyExec("configs['data_input']['predictor_columns'] = list(column_specification.values())")
+    
+    // TO DO: In the future, will this be handled automatically by Wattile loading from predictors_target_config.json?
+    
     // NA type conversion
     session
       .pyExec("notNA = predictor_data_frame.applymap(lambda v: not isinstance(v, hxpy.haystack.na.NA))")
@@ -207,7 +213,7 @@ src:
     session
       .pyExec("_, val_df = prep_for_rnn(configs, predictor_data_frame)")
       .pyExec("results = model.predict(val_df)")
-    
+  
     // Return tidy results:
     //   1. Convert to Pandas series (with multi-index)
     //   2. Convert to Pandas data frame (still with multi-index)
