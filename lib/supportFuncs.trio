@@ -418,22 +418,27 @@ src:
   
     // Resolve existing models
     models = models
+      .map(
+        m => do
+          // Missing?
+          if (m == null) return null
+          
+          // Existing?
+          existingModel: read(wattileModel and uri==m->uri, false)
+  
+          // No existing model
+          if (existingModel == null) return m
+  
+          // Handle existing model
+          if (opts->conflict == "overwrite") return existingModel.merge(m)
+          if (opts->conflict == "duplicate") return m
+          if (opts->conflict == "skip") return null
+  
+          // "error" or any other case
+          throw "'wattileModel' for uri `" + m->uri + "` already exists."
+        end
+      )
       .findAll(m => m != null)
-      .map() m => do
-        // Existing?
-        existingModel: read(wattileModel and uri==m->uri, false)
-  
-        // No existing model
-        if (existingModel == null) return m
-  
-        // Handle existing model
-        if (opts->conflict == "overwrite") return existingModel.merge(m)
-        if (opts->conflict == "duplicate") return m
-        if (opts->conflict == "skip") return null
-  
-        // "error" or any other case
-        throw "'wattileModel' for uri `" + m->uri + "` already exists."
-      end
   
     // Commit?
     if (opts->commit) do
