@@ -784,7 +784,7 @@ doc:
   
   Boolean options may be also be passed as [markers]`haystack::Marker`, with 'x' equivalent to 'x:true' and '-x' equivalent to 'x:false'. If 'forecastOnly = true', the 'forecast' option is ignored. To avoid warning spam in the logs, the 'overwrite' and 'hotPeriod' options also set the `hisWrite` 'noWarn' flag.
   
-  Model-specific sync options may also be defined via the `wattileSyncOpts` tag on a `wattileModel` record. Model-specific sync options apply to all points associated with that model and override values provided in 'opts'.
+  Model-specific sync options p:wattile: defined via the `wattileSyncOpts` tag on a `wattileModel` record. Model-specific sync options apply to all points associated with that model and override values provided in 'opts'.
   
   Forecasts
   ---------
