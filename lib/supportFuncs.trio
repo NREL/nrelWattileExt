@@ -291,8 +291,9 @@ doc:
   - 'checked': [Boolean]`sys::Bool`; throw an error for invalid models (Default = 'true')
   - 'commit': [Boolean]`sys::Bool`; if 'true' commits the model records to the database (Default = 'false')
   - 'conflict': Action on conflicts; one of "skip", "overwrite", "duplicate", or "error" (Default = "error")
+  - 'warn': [Boolean]`sys::Bool`; if 'true' log warnings; if 'false' suppress them (Default = true)
   
-  The 'checked', and 'commit' options may be also be passed as [markers]`haystack::Marker`, with 'x' equivalent to 'x:true' and '-x' equivalent to 'x:false'.
+  Boolean options may also be passed as [markers]`haystack::Marker`, with 'x' equivalent to 'x:true' and '-x' equivalent to 'x:false'.
   
   Conflicts
   ---------
@@ -310,18 +311,20 @@ doc:
   This function performs some basic validation on imported models, including checking directory integrity and verifying the existence of the model's predictor and target points within the SkySpark cluster. Behavior on encountering an invalid model depends on the 'checked' option:
   
   - If 'checked' is 'true', throws an error when an invalid model is encountered
-  - If 'checked' is 'false', silently skips invalid models
-  
+  - If 'checked' is 'false', skips invalid models...
+    - If 'warn' is 'true', with a warning
+    - If 'warn' is 'false', silently
 func
 overridable
 src:
   (dirs, opts:{}) => do
     // Default options
-    opts = {checked:true, conflict:"error"}.merge(opts)
+    opts = {checked:true, warn:true, conflict:"error"}.merge(opts)
   
     // T/F options
     opts = opts.set("checked", opts.has("checked") and opts["checked"] != false)
     opts = opts.set("commit",  opts.has("commit")  and opts["commit"]  != false)
+    opts = opts.set("warn",    opts.has("warn")    and opts["warn"]    != false)
   
     // Action on conflict
     opts = opts.set("conflict", opts->conflict.lower)
@@ -339,8 +342,10 @@ src:
     // Map dirs to records
     models: dirs.map() dir => do
       // Check directory uri
-      if (not dir.isUri) dir = dir.parseUri(opts->checked)
-  
+      if (not dir.isUri) do
+        dir = dir.parseUri(opts->checked)
+      end
+      
       // Verify directory integrity
       try do
         if (dir.isNull) throw "Model directory is null"
@@ -348,7 +353,11 @@ src:
         if (ioDir(dir).isEmpty) throw "Model directory `" + dir.toStr + "` is empty or does not exist"
         if (ioDir(dir).find(f => f->name=="predictors_target_config.json", false) == null) throw "Model directory `" + dir.toStr + "` is missing \"predictors_target_config.json\""
       catch (ex) do
-        if (opts->checked) throw (ex)
+        if (opts->checked) do
+          throw (ex)
+        else if (opts->warn) do
+          logWarn({name:"nrelWattile", funcTrace:"wattileImportModels"}, "Import skipped for: " + dir.toStr, ex)
+        end
         return null // Invalid model
       end
   
