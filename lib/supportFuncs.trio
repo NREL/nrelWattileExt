@@ -430,7 +430,7 @@ src:
           if (existingModel == null) return m
   
           // Handle existing model
-          if (opts->conflict == "overwrite") return existingModel.merge(m)
+          if (opts->conflict == "overwrite") return m.set("id", existingModel.toRecId)
           if (opts->conflict == "duplicate") return m
           if (opts->conflict == "skip") return null
   
@@ -443,7 +443,7 @@ src:
     // Commit?
     if (opts->commit) do
       diffs: models.map() m => if (m.has("id")) do
-        diff(m, m.remove("id"))
+        diff(m.toRecId.readById, m.remove("id"))
       else do
         diff(null, m, {add})
       end
