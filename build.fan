@@ -15,7 +15,7 @@ class Build : BuildPod
   {
     podName = "nrelWattileExt"
     summary = "Interface extension for the Wattile Python package"
-    version = Version("0.1")
+    version = Version("0.2")
     meta    = [
                 "ext.name":        "nrelWattile",
                 "ext.icon":        "target",

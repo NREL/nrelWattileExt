@@ -2,11 +2,11 @@ FROM ghcr.io/haxall/hxpy:latest
 
 # Build Arguments
 ARG WATTILE_BRANCH
-ARG WATTILE_RELEASE=0.1.0
+ARG WATTILE_RELEASE=0.2.0
 ARG HOST_UID=1022
 ARG HOST_GID=1022
-ARG USER_NAME=containeruser
-ARG GROUP_NAME=containeruser
+ARG USER_NAME=skyspark
+ARG GROUP_NAME=skyspark
 
 # Create UID + GID environment variables and assign the values from the build arguments.
 ENV HOST_UID=$HOST_UID \
