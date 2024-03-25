@@ -1,0 +1,9 @@
+name:recDisWithId
+doc:"Returns a record's display name and `id` as a `sys::Str` using the standard format: 'Display Name (@id)'"
+func
+src:
+  (rec) => do
+    rec = rec.toRec
+    rec.dis + " (@" + rec->id.toStr + ")"
+  end
+  // TO DO: Move to nrelUtilityExt?

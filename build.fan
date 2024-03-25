@@ -15,11 +15,11 @@ class Build : BuildPod
   {
     podName = "nrelWattileExt"
     summary = "Interface extension for the Wattile Python package"
-    version = Version("0.1")
+    version = Version("0.2")
     meta    = [
                 "ext.name":        "nrelWattile",
                 "ext.icon":        "target",
-                "ext.depends":     "docker,py,nrelUtility",
+                "ext.depends":     "docker,py,task,nrelUtility",
                 "org.name":        "NREL",
                 "org.uri":         "https://www.nrel.gov/",
                 "proj.name":       "NREL Wattile Extension",

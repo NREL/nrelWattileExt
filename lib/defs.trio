@@ -1,3 +1,4 @@
+// New Defs
 def: ^prediction
 is: ^pointFunction
 doc:
@@ -9,6 +10,12 @@ of: ^point
 tagOn: ^point
 doc:
   Reference to a point for which this point provides a prediction.
+---
+def: ^wattilePredictors
+is: ^grid
+tagOn: ^wattileModel
+doc:
+  Grid of predictor metadata for a Wattile model.
 ---
 def: ^wattileModel
 is: ^entity
@@ -22,7 +29,7 @@ doc:
   A task that interfaces with a Docker image containing the Wattile Python
   package.
 ---
-def: ^wattileTarget
+def: ^wattileTargetRef
 is: ^ref
 of: ^point
 tagOn: ^wattileModel
@@ -42,8 +49,34 @@ is: ^point
 doc:
   Point associated with a Wattile model; receives Wattile prediction data.
 ---
-def: ^wattileHis
-is: ^str
+def: ^wattileReadOpts
+is: ^dict
+tagOn: ^wattileModel
 doc:
-  Used on a `wattilePoint` to define the column of the Wattile prediction
-  output used to sync history data.
+  Wattile model history read options dictionary compatible with
+  `wattileReadHis`.
+---
+def: ^wattileSyncOpts
+is: ^dict
+tagOn: ^wattileModel
+doc:
+  Wattile model synchronization options dictionary compatible with
+  `wattileSyncHis`.
+---
+def: ^wattileQuantile
+is: ^number
+tagOn: ^wattilePoint
+doc: 
+  Used on a `wattilePoint` to define the quantile of the Wattile prediction
+  output used to sync prediction history.
+---
+
+// Modified Defs
+defx: ^uri
+tagOn: ^wattileModel
+---
+defx: ^unit
+tagOn: ^wattileModel
+---
+defx: ^tz
+tagOn: ^wattileModel

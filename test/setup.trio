@@ -11,6 +11,7 @@ doc:
   - 'pythonFuncs.trio'
   - 'supportFuncs.trio'
   - 'taskFuncs.trio'
+  - 'utilityFuncs.trio'
   
   These files are available in the [intelligentcampus-model-deploy]`https://github.com/NREL/intelligentcampus-model-deploy` repo:
   
@@ -22,6 +23,7 @@ doc:
   - 'resetProject': Marker; reset the project before import
   - 'developer': Marker; also imports functions for extension development
     (see above)
+  - 'image': Str; name of Python Docker image to use (default = '"wattile"')
   
   Test Environment
   ----------------
@@ -46,8 +48,8 @@ doc:
   1. 'testModelImport()': Import Wattile models as 'wattileModel' proxy records
   2. 'testModelSetup()': Prepare Wattile models on disk for prediction
   3. 'testPrediction()': Execute predictions using Wattile models
-  4. 'testPredictionPointSetup()': Prepares prediction points to receive predictions
-  4. 'testPredictionPointSync()': Sync predictions from Wattile models to prediction points in SkySpark
+  4. 'testPredictionPointSetup()': Prepares 'prediction' points to receive predictions
+  5. 'testPredictionPointSync()': Sync predictions from Wattile models to 'prediction' points in SkySpark
   
   Some 'test*' functions accept an 'opts' argument that adjusts the behavior; see individual function documentation for details.
   
@@ -79,12 +81,12 @@ src:
   
         // Empty trash
         folioEmptyTrash()
-        
+  
         // Remove `io/wattile/` directory
         ioDelete(`io/wattile/`)
       end
     end
-    
+  
     // Import Folio records
     recs: ioReadTrio(`io/folio_records.trio`)
       .toRecList
@@ -114,7 +116,7 @@ src:
   
       // Find available developer functions
       files = files
-        .findAll() f => f->name.in(["pythonFuncs.trio", "supportFuncs.trio", "taskFuncs.trio"])
+        .findAll() f => f->name.in(["pythonFuncs.trio", "supportFuncs.trio", "taskFuncs.trio", "utilityFuncs.trio"])
   
       // Commit each
       files.each() f => ioReadTrio(f->uri).toRecList.map(funcDiff).commit
@@ -153,14 +155,14 @@ src:
     else do
       image: "wattile"
     end
-    
-    // Load 
-    
+  
+    // Load
+  
     // Copy the test model into io/wattile/models/
     // Note: First removes any existing test_model directory!
     py({image:image})
       .pyExec("import shutil")
-      .pyExec("shutil.copytree('/trained_models/alfa_exp_dir/', '/io/wattile/alfa_model/')")
-      .pyExec("shutil.copytree('/trained_models/bravo_exp_dir/', '/io/wattile/bravo_model/')")
+      .pyExec("shutil.copytree('/wattile/trained_models/alfa_exp_dir/', '/io/wattile/alfa_model/')")
+      .pyExec("shutil.copytree('/wattile/trained_models/bravo_exp_dir/', '/io/wattile/bravo_model/')")
       .pyEval("'Done!'")
   end
