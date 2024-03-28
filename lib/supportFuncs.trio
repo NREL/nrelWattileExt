@@ -716,6 +716,39 @@ src:
       .hisClip
   end
 ---
+name:wattileResolveRec
+doc:"Return the record Dict for 'ref'. If the record does not exist anywhere in the cluster, throw an error."
+func
+overridable
+src:
+  (ref) => do
+    // Data type checking
+    if (not ref.isRef) do
+      throw "'ref' must be a Ref"
+    end
+    
+    // Resolve
+    try do
+      // Try local database
+      rec: ref.toRec
+    catch (ex) do
+      // Try cluster via XQuery
+      refList: xq().xqReadByIdsList(ref.toList).xqExecute
+  
+      // Record not found
+      if (refList.isEmpty) do
+        throw "Ref @" + ref.toStr + " cannot be found anywhere in the cluster."
+      else if (refList.size > 1) do
+        throw "Ref @" + ref.toStr + " did not resolve to a unique record!" // This shouldn't ever happen
+      else do
+        rec: refList.first
+      end
+    end
+    
+    // Return
+    return rec
+  end
+---
 name:wattileResolveRef
 doc:
   Resolve 'refStr' into a valid `haystack::Ref`. If the Ref does not exist in the cluster, throw an error.
@@ -743,23 +776,8 @@ src:
     // Parse
     ref: parseRef(refStr)
   
-    // Resolve
-    try do
-      // Try local database
-      ref = ref.toRec.toRecId
-    catch (ex) do
-      // Try cluster via XQuery
-      refList: xq().xqReadByIdsList(ref.toList).xqExecute
-  
-      // Record not found
-      if (refList.isEmpty) do
-        throw "Ref @" + ref.toStr + " cannot be found anywhere in the cluster."
-      else if (refList.size > 1) do
-        throw "Ref @" + ref.toStr + " did not resolve to a unique record!" // This shouldn't ever happen
-      else do
-        ref = refList.first.toRecId
-      end
-    end
+    // Resolve via wattileResolveRec()
+    ref.wattileResolveRec.toRecId
   end
 ---
 name:wattileSyncHis
