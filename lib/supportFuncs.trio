@@ -374,7 +374,7 @@ src:
           .map() p => do
             // Check for required tags
             if (p.missing("id")) throw "Predictor " + p.dis + " is missing 'id' key."
-            if (p.missing("column")) throw "Predictor " + p.recDisWithId + " is missing 'column' key."
+            if (p.missing("column")) throw "Predictor " + p.wattileRecDisWithId + " is missing 'column' key."
   
             // Default 'dis' to "description" key value, if present
             if (p.missing("dis") and p.has("description")) do
@@ -580,7 +580,7 @@ src:
           logWarn(
             {name:"nrelWattile", funcTrace:"wattileReadHis"},
             "Option 'removeNA' = true overrides a default value ('defVal' option) of NA; " +
-            "NA data for " + point.recDisWithId + " will be replaced with Null."
+            "NA data for " + point.wattileRecDisWithId + " will be replaced with Null."
           )
         end
   
@@ -652,7 +652,7 @@ src:
   
         // Unsupported
         else do
-          throw "Unsupported kind \"" + kind + "\" for point: " + hisGrid.col("v0").meta.recDisWithId
+          throw "Unsupported kind \"" + kind + "\" for point: " + hisGrid.col("v0").meta.wattileRecDisWithId
         end
       end
     else do
@@ -690,7 +690,7 @@ src:
       if (opts->warn and history.hisClip.isEmpty) do
         logWarn(
           {name:"nrelWattile", funcTrace:"wattileReadHis"},
-          "No history found for point " + p.recDisWithId +
+          "No history found for point " + p.wattileRecDisWithId +
           " and span " + format(span)
         )
       end
@@ -716,9 +716,46 @@ src:
       .hisClip
   end
 ---
+name:wattileResolveRec
+doc:"Return the record Dict for 'ref'. If the record does not exist anywhere in the cluster, throw an error or return null based on the 'checked' flag."
+func
+overridable
+src:
+  (ref, checked:true) => do
+    // Data type checking
+    if (not ref.isRef) do
+      throw "'ref' must be a Ref"
+    end
+    
+    // Resolve
+    try do
+      // Try local database
+      rec: ref.toRec
+    catch (ex) do
+      // Try cluster via XQuery
+      refList: xq().xqReadByIdsList(ref.toList).xqExecute
+  
+      // Record not found
+      if (refList.isEmpty) do
+        if (checked) do
+          throw "Ref @" + ref.toStr + " cannot be found anywhere in the cluster."
+        else do
+          rec: null
+        end
+      else if (refList.size > 1) do
+        throw "Ref @" + ref.toStr + " did not resolve to a unique record!" // This shouldn't ever happen
+      else do
+        rec: refList.first
+      end
+    end
+    
+    // Return
+    return rec
+  end
+---
 name:wattileResolveRef
 doc:
-  Resolve 'refStr' into a valid `haystack::Ref`. If the Ref does not exist in the cluster, throw an error.
+  Resolve 'refStr' into a valid `haystack::Ref`. If the record does not exist anywhere in the cluster, throw an error or return null based on the 'checked' flag.
   
   Handles any of the following:
   
@@ -729,7 +766,7 @@ doc:
 func
 overridable
 src:
-  (refStr) => do
+  (refStr, checked:true) => do
     // Convert to string
     refStr = refStr.toStr
   
@@ -743,22 +780,14 @@ src:
     // Parse
     ref: parseRef(refStr)
   
-    // Resolve
-    try do
-      // Try local database
-      ref = ref.toRec.toRecId
-    catch (ex) do
-      // Try cluster via XQuery
-      refList: xq().xqReadByIdsList(ref.toList).xqExecute
-  
-      // Record not found
-      if (refList.isEmpty) do
-        throw "Ref @" + ref.toStr + " cannot be found anywhere in the cluster."
-      else if (refList.size > 1) do
-        throw "Ref @" + ref.toStr + " did not resolve to a unique record!" // This shouldn't ever happen
-      else do
-        ref = refList.first.toRecId
-      end
+    // Resolve via wattileResolveRec()
+    rec: ref.wattileResolveRec(checked)
+    
+    // Return ref
+    if (rec.isNull) do
+      return null
+    else do
+      return rec.toRecId
     end
   end
 ---
@@ -889,10 +918,10 @@ src:
     // Validate points
     points.each() p => do
       // Required tags
-      if (p.missing("wattileModelRef")) throw "Point \"" + p.recDisWithId + "\" is missing 'wattileModelRef' tag"
-      if (p.missing("wattileQuantile")) throw "Point \"" + p.recDisWithId + "\" is missing 'wattileQuantile' tag"
-      if (p.missing("his")) throw "Point \"" + p.recDisWithId + "\" is missing 'his' tag"
-      if (p.missing("tz")) throw "Point \"" + p.recDisWithId + "\" is missing 'tz' tag"
+      if (p.missing("wattileModelRef")) throw "Point \"" + p.wattileRecDisWithId + "\" is missing 'wattileModelRef' tag"
+      if (p.missing("wattileQuantile")) throw "Point \"" + p.wattileRecDisWithId + "\" is missing 'wattileQuantile' tag"
+      if (p.missing("his")) throw "Point \"" + p.wattileRecDisWithId + "\" is missing 'his' tag"
+      if (p.missing("tz")) throw "Point \"" + p.wattileRecDisWithId + "\" is missing 'tz' tag"
     end
   
     // Models
@@ -929,7 +958,7 @@ src:
         if (pointsLocal.isEmpty) do
           logWarn(
             {name:"nrelWattile", funcTrace:"wattileSyncHis"},
-            "No points with 'hisEnd' tag found for model " + model.recDisWithId + "; skipping."
+            "No points with 'hisEnd' tag found for model " + model.wattileRecDisWithId + "; skipping."
           )
           return []
         end
@@ -969,7 +998,7 @@ src:
       catch (ex) do
         logErr(
           {name:"nrelWattileExt", funcTrace:"wattileSyncHis"},
-          "Prediction failed for model " + model.recDisWithId + ".",
+          "Prediction failed for model " + model.wattileRecDisWithId + ".",
           ex
         )
         ok = false

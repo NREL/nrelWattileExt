@@ -78,11 +78,11 @@ src:
       if (target.isEmpty) do
         logWarn(
           {name:"nrelWattile", funcTrace:"wattilePythonModelPredict"},
-          "Target " + model->wattileTargetRef.recDisWithId + " cannot be found anywhere in the cluster; ignoring."
+          "Target " + model->wattileTargetRef.wattileRecDisWithId + " cannot be found anywhere in the cluster; ignoring."
         )
         target = {}
       else if (target.size > 1) do
-        throw "Target @" +  model->wattileTargetRef.recDisWithId + " did not resolve to a unique record!" // This shouldn't ever happen
+        throw "Target @" +  model->wattileTargetRef.wattileRecDisWithId + " did not resolve to a unique record!" // This shouldn't ever happen
       else do
         target = target.first
       end
@@ -111,11 +111,11 @@ src:
 
     // Verify model configuration
     if (modelConfig->learning_algorithm->use_case != "prediction") do
-      throw "Model " + model.recDisWithId +
+      throw "Model " + model.wattileRecDisWithId +
         " is not configured for prediction. Did you run model setup?"
     end
     if (not model->uri.toStr.endsWith(modelConfig->data_output->exp_dir[1..-1])) do
-      throw "Model " + model.recDisWithId +
+      throw "Model " + model.wattileRecDisWithId +
         " directory mismatch. Did you run model setup?"
     end
 

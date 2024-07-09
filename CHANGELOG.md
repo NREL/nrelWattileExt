@@ -10,6 +10,32 @@ This file tracks notable changes to **nrelWattileExt**. The format is based on
 
 [View Changes](https://github.com/NREL/nrelWattileExt/compare/main...develop)
 
+## [v0.2.1] (2024-07-09)
+
+[v0.2.1]: https://github.com/NREL/nrelWattileExt/releases/tag/v0.2.1
+
+[View Changes](https://github.com/NREL/nrelUtilityExt/compare/v0.2.0...v0.2.1)
+
+### Fixed
+
+- Error messages that used helper function `recDisWithId()` no longer fail when
+  the target record does not exist in the local database
+
+### Added
+
+- `wattileResolveRec()`: a cluster-aware function that resolves a reference to a
+  record dictionary
+
+### Changed
+
+- `wattileRecDisWithId()` replaces `recDisWithId()`; new function is
+  Wattile-specific, cluster aware, and safe
+- `wattileResolveRef()` and `wattileResolveRec()` now support a `checked` flag
+
+## [v0.2.0] (2024-03-26)
+
+[v0.2.0]: https://github.com/NREL/nrelWattileExt/releases/tag/v0.2.0
+
 ### Added
 
 - First release of **nrelWattileExt**! For use with [Wattile]
