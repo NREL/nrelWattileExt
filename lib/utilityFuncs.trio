@@ -1,9 +1,20 @@
-name:recDisWithId
-doc:"Returns a record's display name and `id` as a `sys::Str` using the standard format: 'Display Name (@id)'"
+name:wattileRecDisWithId
+doc:"Returns a record's display name and `id` as a `sys::Str` using the standard format: 'Display Name (@id)'."
 func
 src:
   (rec) => do
-    rec = rec.toRec
-    rec.dis + " (@" + rec->id.toStr + ")"
+    try do
+      if (rec.isRef) do
+        rec = wattileResolveRec(rec)
+      else do
+        rec = rec.toRec
+      end
+    catch (ex) do
+      if (rec.isRef) do
+        rec = {id:rec}
+      else do
+        rec = {dis:rec.dis}
+      end
+    end
+    rec.dis + " (@" + rec["id"].toStr + ")"
   end
-  // TO DO: Move to nrelUtilityExt?
