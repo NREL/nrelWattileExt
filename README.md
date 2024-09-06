@@ -328,5 +328,6 @@ minimal SkySpark test environment for developing and testing functions and workf
 License
 -------
 
-NREL internal use only (but stay tuned!)
+This software is licensed for use under the terms of the Berkeley Software
+Distribution 3-clause (BSD-3) license; see `LICENSE.md`.
 
