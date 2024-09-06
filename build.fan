@@ -24,7 +24,7 @@ class Build : BuildPod
                 "org.uri":         "https://www.nrel.gov/",
                 "proj.name":       "NREL Wattile Extension",
                 "proj.uri":        "https://github.com/NREL/nrelWattileExt/",
-                "license.name":    "Commercial", // TO DO: Update when open source
+                "license.name":    "BSD-3",
               ]
     depends = ["sys 1.0+"]
     resDirs = [`lib/`, `locale/`]
