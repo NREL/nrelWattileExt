@@ -329,5 +329,6 @@ License
 -------
 
 This software is licensed for use under the terms of the Berkeley Software
-Distribution 3-clause (BSD-3) license; see `LICENSE.md`.
+Distribution 3-clause (BSD-3) license; see `LICENSE.md`. NREL software record
+number: SWR-24-73.
 
