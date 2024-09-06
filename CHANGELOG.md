@@ -10,6 +10,10 @@ This file tracks notable changes to **nrelWattileExt**. The format is based on
 
 [View Changes](https://github.com/NREL/nrelWattileExt/compare/main...develop)
 
+### Changed
+
+- Update license to BSD-3
+
 ## [v0.2.1] (2024-07-09)
 
 [v0.2.1]: https://github.com/NREL/nrelWattileExt/releases/tag/v0.2.1
