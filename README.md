@@ -3,9 +3,8 @@ nrelWattileExt: Interface extension for Wattile Python package
 
 **nrelWattileExt** is a [SkySpark] extension for interfacing [Wattile], a
 [Python] package for probabilistic prediction of building energy use developed
-by NREL's Intelligent Campus team. At this time, the extension is for NREL
-internal use only. This package is developed and maintained by the
-[National Renewable Energy Laboratory].
+by NREL's Intelligent Campus team. This package is developed and maintained by
+the [National Renewable Energy Laboratory].
 
 [SkySpark]: http://skyfoundry.com/skyspark/ "SkySpark"
 [Wattile]: https://github.com/NREL/wattile/ "Wattile"

@@ -20,15 +20,15 @@ This file tracks notable changes to **nrelWattileExt**. The format is based on
 
 [View Changes](https://github.com/NREL/nrelUtilityExt/compare/v0.2.0...v0.2.1)
 
-### Fixed
-
-- Error messages that used helper function `recDisWithId()` no longer fail when
-  the target record does not exist in the local database
-
 ### Added
 
 - `wattileResolveRec()`: a cluster-aware function that resolves a reference to a
   record dictionary
+
+### Fixed
+
+- Error messages that used helper function `recDisWithId()` no longer fail when
+  the target record does not exist in the local database
 
 ### Changed
 
