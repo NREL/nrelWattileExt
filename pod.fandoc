@@ -71,6 +71,7 @@ single directory, including:
 - 'configs.json': Model configuration parameters
 - 'predictors_target_config.json': List of model input points (predictors) and
   the model target (point being predicted)
+- 'metadata.json': Model metadata (Wattile v0.3 or later)
 - Various data files
 
 For use with SkySpark, a Wattile model's 'predictors_target_config.json' *must*
@@ -94,6 +95,7 @@ have tags:
 - `wattilePredictors`: `haystack::Grid` of predictor metadata
 - `wattileTargetRef`: `haystack::Ref` to the prediction target
 - `wattileReadOpts`: Options `haystack::Dict` compatible with `wattileReadHis()`
+- `wattileVersion`: Wattile version string
 - `dis`: Display name for the model
 - `tz`: Time zone of model prediction output
 - `unit`: Units of model prediction output

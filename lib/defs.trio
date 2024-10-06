@@ -70,6 +70,12 @@ doc:
   Used on a `wattilePoint` to define the quantile of the Wattile prediction
   output used to sync prediction history.
 ---
+def: ^wattileVersion
+is: ^str
+tagOn: ^wattileModel
+doc:
+  Wattile software version associated with a Wattile model.
+---
 
 // Modified Defs
 defx: ^uri
