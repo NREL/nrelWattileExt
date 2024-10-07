@@ -13,6 +13,8 @@ This file tracks notable changes to **nrelWattileExt**. The format is based on
 ### Changed
 
 - Update license to BSD-3
+- `wattileImportModels()` now imports the Wattile version used to train each
+  model and stores it in a `wattileVersion` tag on the model record
 
 ## [v0.2.1] (2024-07-09)
 
