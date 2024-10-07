@@ -261,9 +261,13 @@ configuration options and their effects. For example, the 'limit' option above
 restricts predictions to blocks of 15 days at a time, which prevents executing
 Wattile models with excessively large input data sets.
 
+Initial Sync
+------------
+
 Before an automatic span can be used (by setting 'span' to Null), `wattilePoint`
 histories must be initialized using a non-Null 'span'. For example:
 
+  // Initial prediction sync
   taskRun(
     wattileSyncHis(
       readAll(wattilePoint and not hisEnd), // Uninitialized points
@@ -275,6 +279,22 @@ histories must be initialized using a non-Null 'span'. For example:
 
 Remember to check that each point has history (non-Null 'hisEnd') after running
 this initial sync.
+
+Visualizing Predictions
+-----------------------
+
+The function `wattileViewPredictionHistory()` can be used to visualize Wattile
+predictions as shaded regions on a time series plot. The appearance of the
+time series plot can be customized.
+
+  read(wattileModel).wattileViewPredictionHistory(yesterday())
+  
+  read(wattileModel)
+    .wattileViewPredictionHistory(
+      lastWeek(),
+      null,
+      {predictionGradient:["#f6eff7", "#bdc9e1", "#67a9cf", "#02818a"]}
+    )
 
 Example [#example]
 ******************

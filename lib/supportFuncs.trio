@@ -1090,3 +1090,116 @@ src:
     hisSync()
     modifiedPoints.flatten.toRecIdList.readByIds
   end
+---
+name:wattileViewPredictionHistory
+doc:
+  Visualize Wattile 'model' prediction history for 'span'. If available, history from the model's target point is also shown. The target point is resolved via the model's `wattileTargetRef` or can be specified by the user via 'target'.
+  
+  Options
+  -------
+  
+  Appearance can be modified by control options passed via 'opts':
+  
+  - 'interval': Time interval for `hisRollupAuto()` (Default = none)
+  - 'lineColor': Target history line color (Default = "#34495e")
+  - 'lineWidth': Target history line (stroke) width (Default = 1.5)
+  - 'predictionGradient': List of colors used to create the prediction shading (Default = OrRd from [Color Brewer]`https://colorbrewer2.org/`)
+  - 'predictionWidth': Prediction history line (stroke) width (Default = 0.5)
+  
+  The first color in 'predictionGradient' corresponds to the 0th percentile prediction and the last color corresponds to the 50th percentile (median) prediction. The gradient is interpolated in reverse for the 50th to 100th percentile.
+func
+src:
+  (model, span, target:null, opts:{}) => do
+    // Default options
+    opts = {
+      lineColor: "#34495e",
+      lineWidth: 1.5,
+      predictionGradient: ["#fef0d9", "#fdcc8a", "#fc8d59", "#e34a33", "#b30000"],
+      predictionWidth: 0.5,
+    }.merge(opts)
+    
+    // Default gradiant is 5-class OrRd from Color Brewer, https://colorbrewer2.org/
+    
+    // Get model
+    model = model.toRec
+    
+    // Get time span
+    span = span.toSpan
+    
+    // Check interval option
+    if (opts.has("interval") and not opts->interval.isNumber) do
+      throw "Invalid 'interval' option; must be a number."
+    end
+    
+    // Get target point
+    targetPoint: if (target != null) do
+      target.toRec
+    else if (model.has("wattileTargetRef")) do
+      wattileResolveRec(model->wattileTargetRef)
+    else do
+      null
+    end
+    
+    // Get prediction points
+    predictionPoints: xq()
+      .xqReadAll(point and wattilePoint and prediction and wattileModelRef==model.toRecId)
+      .xqExecute
+      .sort("wattileQuantile")
+    
+    // Read history
+    targetHis: xq().xqReadByIds(targetPoint.toRecIdList).xqHisRead(span, {-limit}).xqExecute()
+    predictionHis: xq().xqReadByIds(predictionPoints.toRecIdList).xqHisRead(span, {-limit}).xqExecute()
+    
+    // Target chart properties
+    targetHis = targetHis.addColMeta("v0", {color:opts->lineColor, strokeWidth:opts->lineWidth})
+    
+    // Prediction chart color range
+    predictionColors: opts->predictionGradient
+    
+    // Prediction chart properties
+    predictionHis.cols.each() col => do
+      // Column meta
+      colMeta: col.meta
+      
+      // Skip ts
+      if (col.name == "ts") return null
+      
+      // Quantile of this prediction
+      q: colMeta->wattileQuantile
+      
+      // Select color
+      if (q == 0.5) do
+        color: predictionColors.last
+      else if (q < 0.5) do
+        color: vizInterpolateRgb(predictionColors, 2*q)
+      else if (q > 0.5) do
+        color: vizInterpolateRgb(predictionColors, 2*(1 - q))
+      end
+      
+      // Custom opacity in area charts is currently unsupported; see: https://skyfoundry.com/forum/topic/5164.
+      
+      // Set chart area mode
+      if (q == 0.5) do
+        chartAreaMode: null
+      else if (q < 0.5) do
+        chartAreaMode: "nextSeries"
+      else if (q > 0.5) do
+        chartAreaMode: "prevSeries"
+      end
+      
+      // Merge chart properties
+      colMeta = colMeta.merge({
+        color: color,
+        strokeWidth: opts->predictionWidth,
+        chartAreaMode: chartAreaMode
+      })
+      
+      // Set col meta
+      predictionHis = predictionHis.setColMeta(col.name, colMeta)
+    end
+    
+    // Combine and return
+    hisJoin([predictionHis, targetHis])
+      .addMeta({chartLegendNoSort})
+      .hisRollupAuto(opts["interval"])
+  end
