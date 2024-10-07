@@ -278,6 +278,7 @@ doc:
   - `wattileModel`
   - `wattilePredictors`: `haystack::Grid` of predictor metadata (see [documentation]`ext-nrelWattile::doc#proxy`)
   - `wattileTargetRef`: Optional `haystack::Ref` to the prediction target (if available from 'predictors_target_config.json'; see [documentation]`ext-nrelWattile::doc#proxy`)
+  - `wattileVersion`: Optional Wattile version string (if available from 'metadata.json'; see [documentation]`ext-nrelWattile::doc#proxy`)
   - `uri`: Path to the model directory
   - `unit`: Optional unit for the prediction output
   
@@ -345,7 +346,7 @@ src:
       if (not dir.isUri) do
         dir = dir.parseUri(opts->checked)
       end
-      
+  
       // Verify directory integrity
       try do
         if (dir.isNull) throw "Model directory is null"
@@ -406,12 +407,30 @@ src:
             model = model.set("unit", predictorConfig->target->unit)
           end
         end
-  
+        
       catch (ex) do
         if (opts->checked) throw (ex)
         return null // Invalid model
       end
   
+      // Read additional metadata, if available
+      // TO DO: Require this metadata file in the future?
+      try do
+        modelMeta: ioReadJson(dir + "metadata.json")
+        if (modelMeta.has("wattile_version")) do
+          model = model.set("wattileVersion", modelMeta->wattile_version)
+        end
+      catch (ex) do
+        // Ignore if file does not exist; warn otherwise
+        if (not ex.dis.contains("sys::IOErr: File does not exist")) do
+          logWarn(
+            {name:"nrelWattile", funcTrace:"wattileImportModels"},
+            "Error reading model metadata file: " + (dir + "metadata.json").toStr,
+            ex
+          )
+        end
+      end
+      
       // Return
       model
     end
