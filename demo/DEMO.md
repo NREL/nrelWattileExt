@@ -140,7 +140,7 @@ Importing a Trained Model
 
 3. Copy the "Headquarters-Electricity" directory contents into the new SkySpark
    subfolder created in step 2. You need at minimum the 5 files mentioned under
-   [#model-structure] above.
+   [Model Structure](#model-structure) above.
 
 Running Predictions
 -------------------
