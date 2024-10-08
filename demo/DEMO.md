@@ -19,9 +19,12 @@ Setup
 This demonstration works with the SkySpark demo database. To set up the demo:
 
 1. Install SkySpark
+
 2. Run *demogen*, with ~2 years of simulated past history
    (see SkySpark [docs](https://skyfoundry.com/doc/docSkySpark/Setup#demogen))
+
 3. Install [nrelWattileExt] and [nrelUtilityExt] from [StackHub]
+
 4. In the demo project, enable the `nrelWattile` extension (this also enables
    dependencies `docker` , `py`, `task`, and `nrelUtility`)
 
@@ -55,28 +58,30 @@ Exporting Training Data
 
 *Example code for this section is found in `data_export.trio`.*
 
-Training a Wattile model requires time series data for the model *target* and
-*predictors*. For this demo, the *target* will be the Headquarters building's
-main electricity meter's power measurement. The *predictors* will be:
+This section demonstrates how to export data from SkySpark for training a
+Wattile model. Training a Wattile model requires time series data for the model
+*target* and *predictors*. For this demo, the *target* will be the Headquarters
+building's main electricity meter power measurement. The *predictors* will be:
 
 - Outside air temperature for Richmond, VA
 - Outside air humidity for Richmond, VA
 
 (Richmond, VA is the `weatherStation` for the "Headquarters" `site`.)
 
-The function `wattileDemoExportTrainingData()` contains example code for
-exporting training data from these points. After running the code, your demo
-project's `io` folder will have the following subfolders and files:
+1. Run the example code in the `wattileDemoExportTrainingData()` function.
 
-- `wattile/`
-  - `training_data/`
-    - `Headquarters/`
-      - `Headquarters Config.json`
-      - `Headquarters Predictors.csv`
-      - `Headquarters Targets.csv`
+2. After running the code, your demo project's `io` folder should contain the
+   following subfolders and files:
 
-These three files have all the metadata and time series data required to train
-the demo Wattile model.
+   - `wattile/`
+     - `training_data/`
+       - `Headquarters/`
+         - `Headquarters Config.json`
+         - `Headquarters Predictors.csv`
+         - `Headquarters Targets.csv`
+
+   These three files contain all the metadata and time series data required to
+   train the demo Wattile model.
 
 Model Training
 --------------
@@ -90,11 +95,13 @@ available in the [Wattile_Examples] repository on GitHub. The example model:
 - Outputs predictions at an hourly resolution
 - Predicts five quantiles: 0.05, 0.25, 0.50, 0.75, 0.95
 
-[Wattile_Examples]: https://github.com/NREL/Wattile_Examples/
+Training the model itself is outside the scope of this demo. (If you want to
+learn how to train the model, see these [python notebooks].) Instead, for this
+demo, you will download and use the pre-trained example model available in the
+"Headquarters-Electricity" [model directory] from the Wattile_Examples repo.
 
-To use the model, first download the "Headquarters-Electricity"
-[model directory] from [Wattile_Examples].
-
+[Wattile_Examples]: https://github.com/NREL/Wattile_Examples/ex-1-skyspark-demo/ "Wattile Example: SkySpark Demo"
+[python notebooks]: https://github.com/NREL/Wattile_Examples/tree/main/ex-1-skyspark-demo/notebooks "Wattile Example Python Notebooks"
 [model directory]: https://github.com/NREL/Wattile_Examples/tree/main/ex-1-skyspark-demo/models/model-1 "Headquarters-Electricity"
 
 **TO DO:** Update link for new folder name when available
@@ -132,18 +139,63 @@ Importing a Trained Model
 
 *Example code for this section is found in `model_import.trio`.*
 
-1. If you haven't already, download the "Headquarters-Electricity"
+This section demonstrates how to import a trained Wattile model into SkySpark.
+
+1. If you haven't already, download the entire "Headquarters-Electricity"
    [model directory] from [Wattile_Examples].
 
-2. Create a subfolder for your model within the SkySpark demo project:
+2. Create this subfolder for your model within the SkySpark demo project:
    `io/wattile/Headquarters-Electricity/`
 
 3. Copy the "Headquarters-Electricity" directory contents into the new SkySpark
    subfolder created in step 2. You need at minimum the 5 files mentioned under
    [Model Structure](#model-structure) above.
 
+4. **TO DO:** New predictors_target_config
+
+   - This step is not normally needed; it is only necessary for this demo
+     because the example model was trained from a different database than the
+     demo project you just created.
+   - For more information, see
+     [Demo Model Target and Predictor Refs](#demo-model-target-and-predictor-refs)
+     below.
+
+5. **TO DO:** Model import command
+
+6. **TO DO:** Model record query
+
+### Demo Model Target and Predictor Refs
+
+Normally, you will be importing a Wattile model back into the same SkySpark
+project where you originally exported the training data. Therefore, the `id`
+values for the target and predictor points in `predictors_target_config.json`
+will match points in the SkySpark project database. For this demo, however,
+that's not the case.
+
+SkySpark's demo database automatically generates a randomized `id` tag for each
+record. This means that the ids of the target and predictor points in the data
+set used to train the "Headquarters-Electricity" example model will not be the
+same as the ids of the parallel target and predictor points in your local demo
+project. To fix this, we replace the original `predictors_target_config.json`
+with a new version that contains `id` values matched to your local demo project.
+
 Running Predictions
 -------------------
 
+- Create task
+- Model setup
+- Execute a prediction
+
 Syncing Prediction History
 --------------------------
+
+- Describe prediction point structure in brief; reference extension docs.
+
+### Create Prediction Points
+
+- Create a point manually
+- Create points automatically
+
+### Initial Prediction Sync
+
+### Create a Sync Task
