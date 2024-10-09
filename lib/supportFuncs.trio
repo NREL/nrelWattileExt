@@ -1220,6 +1220,10 @@ src:
     
     // Combine and return
     hisJoin([predictionHis, targetHis])
-      .addMeta({chartLegendNoSort})
+      .addMeta({
+        title: "Wattile: Prediction History",
+        subtitle: model.dis + " | " + format(span),
+        chartLegendNoSort
+      })
       .hisRollupAuto(opts["interval"])
   end
