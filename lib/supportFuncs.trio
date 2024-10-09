@@ -1127,6 +1127,7 @@ doc:
   
   The first color in 'predictionGradient' corresponds to the 0th percentile prediction and the last color corresponds to the 50th percentile (median) prediction. The gradient is interpolated in reverse for the 50th to 100th percentile.
 func
+overridable
 src:
   (model, span, target:null, opts:{}) => do
     // Default options
