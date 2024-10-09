@@ -105,6 +105,14 @@ To build the required Docker image containing [Wattile]:
    (The `--no-cache` option is used here to ensure that you do not accidentally
    build from an outdated, cached local copy of the repository.)
 
+If you have trouble building the image, check the Docker docs for
+[build cache invalidation] and [docker image pull]. You may need to clear the
+cache entirely, pull an updated `hxpy` base image manually, and/or add the
+`--pull` option to the build command.
+
+[build cache invalidation]: https://docs.docker.com/build/cache/invalidation/
+[docker image pull]: https://docs.docker.com/reference/cli/docker/image/pull/
+
 If you did not build the Docker image on the same system where SkySpark runs,
 you will also need to copy and install the Docker image on your SkySpark system:
 
