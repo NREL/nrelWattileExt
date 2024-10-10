@@ -1,0 +1,37 @@
+name:wattileDemoFixPredictorsTargetConfig
+doc:
+  Update 'predictors_target_config' for the Headquarters-Electricity model to have the correct refs for the local demo project.
+  
+  *This function is not part of the normal Wattile workflow; it is only needed to normalize the example model for each specific demo project. For more information, see 'DEMO.md'.*
+func
+src:
+  () => do
+    // Predictors and target config file
+    configFile: `io/wattile/Headquarters-Electricity/predictors_target_config.json`
+    
+    // Read JSON
+    config: ioReadJson(configFile, {v3})
+    
+    // Read string
+    configStr: ioReadStr(configFile)
+    
+    // Function to update original ref to new ref
+    // (Not a recommended approach for a large database, but works ok in demo project!)
+    getNewRef: (pt) => do
+      // Match by 'dis'
+      readAll(point).find(p => p.dis == pt.dis).toRecId
+    end
+    
+    // Find/replace old refs with corrected versions from local DB
+    config->predictors
+      .add(config->target)
+      .map() p => do
+        oldRefStr: p->id.toStr
+        newRefStr: p.getNewRef.toStr
+        configStr = configStr.replace(oldRefStr, newRefStr)
+      end
+    
+    // Back up original and replace with new
+    ioMove(configFile, parseUri(configFile.toStr + ".bak"))
+    ioWriteStr(configStr, configFile)
+  end

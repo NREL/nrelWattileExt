@@ -102,9 +102,7 @@ demo, you will download and use the pre-trained example model available in the
 
 [Wattile_Examples]: https://github.com/NREL/Wattile_Examples/ex-1-skyspark-demo/ "Wattile Example: SkySpark Demo"
 [python notebooks]: https://github.com/NREL/Wattile_Examples/tree/main/ex-1-skyspark-demo/notebooks "Wattile Example Python Notebooks"
-[model directory]: https://github.com/NREL/Wattile_Examples/tree/main/ex-1-skyspark-demo/models/model-1 "Headquarters-Electricity"
-
-**TO DO:** Update link for new folder name when available
+[model directory]: https://github.com/NREL/Wattile_Examples/tree/main/ex-1-skyspark-demo/models/headquarters-electricity "Headquarters-Electricity"
 
 ### Model Options
 
@@ -151,7 +149,9 @@ This section demonstrates how to import a trained Wattile model into SkySpark.
    subfolder created in step 2. You need at minimum the 5 files mentioned under
    [Model Structure](#model-structure) above.
 
-4. **TO DO:** New predictors_target_config
+4. Run the example code in the `wattileDemoFixPredictorsTargetConfig()`
+   function to update the point IDs in `predictors_target_config.json` to match
+   your local demo project.
 
    - This step is not normally needed; it is only necessary for this demo
      because the example model was trained from a different database than the
