@@ -6,14 +6,14 @@ FROM python:3.12-slim
 
 # Build Arguments
 ARG WATTILE_BRANCH
-ARG WATTILE_RELEASE=0.3.0
+ARG WATTILE_TAG=v0.3.0
 ARG HOST_UID=1022
 ARG HOST_GID=1022
 ARG USER_NAME=skyspark
 ARG GROUP_NAME=skyspark
 
 # Temporary build argument: Haxall version to clone
-ARG HAXALL_RELEASE=3.1.10
+ARG HAXALL_TAG=v3.1.10
 
 # Install curl
 RUN apt-get -y update; apt-get -y install curl
@@ -51,8 +51,8 @@ RUN if [ -n "$WATTILE_BRANCH" ]; then \
         echo "Downloading from: https://github.com/NREL/Wattile/archive/${WATTILE_BRANCH}.tar.gz"; \
         curl -L https://github.com/NREL/Wattile/archive/${WATTILE_BRANCH}.tar.gz | tar zx -C /wattile  --strip-components 1; \
     else \
-        echo "Downloading from: https://github.com/NREL/Wattile/archive/refs/tags/${WATTILE_RELEASE}.tar.gz"; \
-        curl -L https://github.com/NREL/Wattile/archive/refs/tags/${WATTILE_RELEASE}.tar.gz | tar zx -C /wattile  --strip-components 1; \
+        echo "Downloading from: https://github.com/NREL/Wattile/archive/refs/tags/${WATTILE_TAG}.tar.gz"; \
+        curl -L https://github.com/NREL/Wattile/archive/refs/tags/${WATTILE_TAG}.tar.gz | tar zx -C /wattile  --strip-components 1; \
     fi
 
 # Copy Wattile and Models

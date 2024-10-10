@@ -89,11 +89,11 @@ To build the required Docker image containing [Wattile]:
    docker build --tag="wattile" .
    ```
    
-   Optionally, to specify a Wattile release version or branch other than
+   Optionally, to specify a Wattile tag (release version) or branch other than
    the default:
    
    ```
-   docker build --build-arg="WATTILE_RELEASE=X.Y.Z" --tag="wattile" .
+   docker build --build-arg="WATTILE_TAG=X.Y.Z" --tag="wattile" .
    ```
    
    or
