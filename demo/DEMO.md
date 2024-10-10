@@ -124,13 +124,13 @@ requires in order to run predictions from the model are:
 - `predictors_target_config.json`
 - `train_stats.json`
 - `torch_model`
+- `predictions.h5`
 
-**TO DO:** Is `predictions.h5` also needed?
-
-These five files within a directory make a minimal Wattile model. Additional
+These six files within a directory make a minimal Wattile model. Additional
 files created during training include cached data, cached predictions, and
 plots/visualizations of model's performance with respect to the validation data
-set.
+set. (Of these additional files, only the plots/visualizations are included with
+the example model.)
 
 Importing a Trained Model
 -------------------------
