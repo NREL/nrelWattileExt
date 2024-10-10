@@ -29,7 +29,7 @@ RUN curl -L https://github.com/haxall/haxall/archive/refs/tags/${HAXALL_TAG}.tar
     | tar zx -C /haxall  --strip-components 1
 
 # Copy hxpy
-RUN cp -r /haxall/src/lib/hxPy/py/hxpy .
+RUN cp -r /haxall/src/lib/hxPy/py/hxpy/* .
 
 # Install Python packages
 RUN pip install --no-cache-dir -r ./requirements.txt
