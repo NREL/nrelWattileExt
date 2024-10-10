@@ -25,7 +25,7 @@ WORKDIR /usr/src/app
 
 # Clone Haxall
 RUN mkdir /haxall
-RUN curl -L https://github.com/haxall/haxall/archive/refs/tags/${HAXALL_RELEASE}.tar.gz \
+RUN curl -L https://github.com/haxall/haxall/archive/refs/tags/${HAXALL_TAG}.tar.gz \
     | tar zx -C /haxall  --strip-components 1
 
 # Copy hxpy
