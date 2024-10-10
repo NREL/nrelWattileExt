@@ -57,7 +57,6 @@ RUN if [ -n "$WATTILE_BRANCH" ]; then \
 
 # Copy Wattile and Models
 RUN mv /wattile/tests/fixtures /wattile/trained_models
-ENV PYTHONPATH=${PYTHONPATH}:${PWD}
 
 # Install Dependices
 RUN cd /wattile && pip install .
