@@ -1,0 +1,32 @@
+name:wattileDemoExportTrainingData
+doc:
+  Exports data for training a demonstration Wattile model:
+  
+  - Target: "Headquarters" site's main electricity meter power
+  - Predictors: Richmond, VA weather station temperature and humidity
+  
+  (Richmond, VA is the 'weatherStation' for the "Headquarters" 'site'.)
+func
+src:
+  () => do
+    // Target
+    site: read(site and dis=="Headquarters")
+    target: read(power and sensor and point
+      and equipRef->elec and equipRef->siteMeter and siteRef==site.toRecId)
+    
+    // Predictors
+    weatherStation: site.toWeather // Richmond, VA
+    predictors: readAll(weather and (temp or humidity) and point and weatherStationRef==weatherStation.toRecId)
+    
+    // Time Span
+    dates: lastYear()
+    
+    // Output directory
+    dir: `io/wattile/training_data/` + (site.dis + "/")
+    
+    // Export options
+    opts: {interval:15min, interpolate}
+      
+    // Export the data
+    wattileExportTrainingData(predictors, target, dates, dir, opts)
+  end
