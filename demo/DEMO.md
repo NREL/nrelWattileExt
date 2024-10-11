@@ -359,3 +359,11 @@ prediction history is best accomplished with a dedicated task.
    
    For an explanation of how to interpret this plot, see the
    `wattileViewPredictionQuantiles()` function documentation.
+
+Conclusion
+----------
+
+Congratulations! You learned how to export data to train Wattile models, how to
+import trained Wattile models back into SkySpark, and how to sync predictions
+from Wattile to SkySpark. The **nrelWattileExt** documentation contains much
+more detailed information on how to customize and use Wattile with SkySpark.
