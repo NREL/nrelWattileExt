@@ -70,9 +70,15 @@ building's main electricity meter power measurement. The *predictors* will be:
 
 (Richmond, VA is the `weatherStation` for the "Headquarters" `site`.)
 
-1. Run the example code in the `wattileDemoExportTrainingData()` function.
+1. Run the example code in:
 
-2. After running the code, your demo project's `io` folder should contain the
+   ```
+   wattileDemoExportTrainingData()
+   ```
+   
+   This function exports the model training metadata and time series data.
+
+2. After running the code, your demo project's `io/` folder should contain the
    following subfolders and files:
 
    - `wattile/`
@@ -89,8 +95,9 @@ Model Training
 --------------
 
 At this time, Wattile model training happens outside of SkySpark. A Python
-notebook that demonstrates how to build the Headquarters example model is
-available in the [Wattile_Examples] repository on GitHub. The example model:
+notebook that demonstrates how to build the "Headquarters-Electricity" example
+model is available in the [Wattile_Examples] repository on GitHub. The example
+model:
 
 - Accepts as input the predictors from the training data set created above
 - Generates time-based features as additional predictors
@@ -100,7 +107,7 @@ available in the [Wattile_Examples] repository on GitHub. The example model:
 Training the model itself is outside the scope of this demo. (If you want to
 learn how to train the model, see these [python notebooks].) Instead, for this
 demo, you will download and use the pre-trained example model available in the
-"Headquarters-Electricity" [model directory] from the Wattile_Examples repo.
+"Headquarters-Electricity" [model directory].
 
 [Wattile_Examples]: https://github.com/NREL/Wattile_Examples/ex-1-skyspark-demo/ "Wattile Example: SkySpark Demo"
 [python notebooks]: https://github.com/NREL/Wattile_Examples/tree/main/ex-1-skyspark-demo/notebooks "Wattile Example Python Notebooks"
@@ -142,16 +149,21 @@ This section demonstrates how to import a trained Wattile model into SkySpark.
 1. If you haven't already, download the entire "Headquarters-Electricity"
    [model directory] from [Wattile_Examples].
 
-2. Create this subfolder for your model within the SkySpark demo project:
+2. Create a subfolder for your model within the SkySpark demo project:
    `io/wattile/Headquarters-Electricity/`
 
 3. Copy the "Headquarters-Electricity" directory contents into the new SkySpark
-   subfolder created in step 2. You need at minimum the 5 files mentioned under
+   subfolder created in step 2. You need at minimum the 6 files mentioned under
    [Model Structure](#model-structure) above.
 
-4. Run the example code in the `wattileDemoFixPredictorsTargetConfig()`
-   function to update the point IDs in `predictors_target_config.json` to match
-   your local demo project.
+4. Run the example code in:
+
+   ```
+   wattileDemoFixPredictorsTargetConfig()
+   ```
+   
+   This function updates the point IDs in `predictors_target_config.json` to
+   match your local demo project.
 
    - This step is not normally needed; it is only necessary for this demo
      because the example model was trained from a different database than the
@@ -213,7 +225,7 @@ demonstrates how to use the task framework to run Wattile model predictions.
    dis: "Wattile Python Task"
    task
    taskExpr:
-     (msg) => wattilePythonTask(msg, "wattile_0.2.0")
+     (msg) => wattilePythonTask(msg, "wattile_0.3.0")
    wattileTask
    ```
 
@@ -224,14 +236,24 @@ demonstrates how to use the task framework to run Wattile model predictions.
    programmatically.
 
 2. Before running predictions, the Wattile model must be configured for
-   prediction. Run the example code in `wattileDemoRunSetup()`. This executes
-   the `"setup"` action of `wattilePythonTask`.
+   prediction. Run the example code in:
+
+   ```
+   wattileDemoRunSetup()
+   ```
+   
+   This function executes the `"setup"` action of `wattilePythonTask`.
 
 3. The example model is now ready! To retrieve a prediction, run the example
-   code in `wattileDemoRunPrediction()`. You will see a grid with predictions
-   for each quantile available from the model for the requested time span (in
-   this case, yesterday). For more information about the format of this grid,
-   see the **nrelWattileExt** docs.
+   code in:
+   
+   ```
+   wattileDemoRunPrediction()
+   ```
+   
+   You will see a grid with predictions for each quantile available from the
+   model for the requested time span (in this case, yesterday). For more
+   information about the format of this grid, see the **nrelWattileExt** docs.
 
 Syncing Prediction History
 --------------------------
@@ -262,12 +284,16 @@ the model. Technical details are available in the **nrelWattileExt** docs.
       iv. Add the `wattileModelRef` tag and reference it to the "Headquarters-
            Electricity" Wattile model
 
-2. To create prediction points automatically: view and run the example code in
-   `wattileDemoCreatePredictionPoints()`. This function creates one prediction
-   point, with appropriate marker tags, for each quantile that is available from
-   the Wattile model (per the model config). The function can be easily adapted
-   to accept the model as an input argument, offering a way to quickly create
-   prediction points for a large number of Wattile models.
+2. To create prediction points automatically: view and run the example code in:
+   
+   ```
+   wattileDemoCreatePredictionPoints()
+   ```
+   This function creates one prediction point, with appropriate marker tags, for
+   each quantile that is available from the Wattile model (per the model
+   config). The function can be easily adapted to accept the model as an input
+   argument, offering a way to quickly create prediction points for a large
+   number of Wattile models.
 
 In practice, after you create prediciton points you may need to tweak their tags
 to match the predictions supplied by the Wattile model. For example, you may
@@ -280,21 +306,21 @@ to run model predictions and store the history on `wattilePoint` points.
 
 1. To synchronize an initial span of prediction data, run the following code:
 
-```
-// Initial prediction sync
-taskRun(
-  wattileSyncHis(
-    readAll(wattilePoint and wattileModelRef->dis=="Headquarters-Electricity"),
-    read(wattileTask), // Task
-    lastMonth().start, // Initial span; modify as desired
-    {limit:1day}       // Options
-  )
-).futureGet
-```
+   ```
+   // Initial prediction sync
+   taskRun(
+     wattileSyncHis(
+       readAll(wattilePoint and wattileModelRef->dis=="Headquarters-Electricity"),
+       read(wattileTask), // Task
+       lastMonth().start, // Initial span; modify as desired
+       {limit:1day}       // Options
+     )
+   ).futureGet
+   ```
 
-This code is also available in the function `wattileDemoInitialSync()`. After
-running the example code, your demo project should contain one day of
-predictions: the first day of last month.
+   This code is also available in the function `wattileDemoInitialSync()`. After
+   running the example code, your demo project should contain one day of
+   predictions: the first day of last month.
 
 2. (Optional) To view the predictions you just created, you can run:
 
