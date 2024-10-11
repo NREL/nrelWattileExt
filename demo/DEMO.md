@@ -236,24 +236,47 @@ demonstrates how to use the task framework to run Wattile model predictions.
    programmatically.
 
 2. Before running predictions, the Wattile model must be configured for
-   prediction. Run the example code in:
+   prediction. To do this, send the `"setup"` action to `wattilePythonTask`:
 
    ```
-   wattileDemoRunSetup()
+   // Model record
+   model: read(wattileModel and dis=="Headquarters-Electricity")
+   
+   // Run the setup action
+   read(wattileTask)
+     .taskSend({
+       action: "setup",
+       model: model
+     })
+     .futureGet
    ```
    
-   This function executes the `"setup"` action of `wattilePythonTask`.
+   This code is also available in the function `wattileDemoRunSetup()`.
 
-3. The example model is now ready! To retrieve a prediction, run the example
-   code in:
+3. The example model is now ready! To retrieve a prediction, run the following
+   example code:
    
    ```
-   wattileDemoRunPrediction()
+   // Model record
+   model: read(wattileModel and dis=="Headquarters-Electricity")
+   
+   // Time span to predict
+   span: yesterday()
+    
+   // Run the predict action
+   read(wattileTask)
+     .taskSend({
+       action: "predict",
+       model: model,
+       span: span
+     })
+     .futureGet
    ```
    
-   You will see a grid with predictions for each quantile available from the
-   model for the requested time span (in this case, yesterday). For more
-   information about the format of this grid, see the **nrelWattileExt** docs.
+   This code is also available in the function `wattileDemoRunPrediction()`. You
+   will see a grid with predictions for each quantile available from the model
+   for the requested time span (in this case, yesterday). For more information
+   about the format of this grid, see the **nrelWattileExt** docs.
 
 Syncing Prediction History
 --------------------------
