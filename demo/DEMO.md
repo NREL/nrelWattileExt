@@ -109,7 +109,7 @@ learn how to train the model, see these [python notebooks].) Instead, for this
 demo, you will download and use the pre-trained example model available in the
 "Headquarters-Electricity" [model directory].
 
-[Wattile_Examples]: https://github.com/NREL/Wattile_Examples/ex-1-skyspark-demo/ "Wattile Example: SkySpark Demo"
+[Wattile_Examples]: https://github.com/NREL/Wattile_Examples/tree/main/ex-1-skyspark-demo "Wattile Example: SkySpark Demo"
 [python notebooks]: https://github.com/NREL/Wattile_Examples/tree/main/ex-1-skyspark-demo/notebooks "Wattile Example Python Notebooks"
 [model directory]: https://github.com/NREL/Wattile_Examples/tree/main/ex-1-skyspark-demo/models/headquarters-electricity "Headquarters-Electricity"
 
