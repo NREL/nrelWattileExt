@@ -315,10 +315,8 @@ time series plot can be customized.
       {predictionGradient:["#f6eff7", "#bdc9e1", "#67a9cf", "#02818a"]}
     )
 
-Example [#example]
-******************
+Demo [#demo]
+************
 
-**TO DO: Create an example using the SkySpark demo project. Train this model
-and make it available either in the Wattile repo or the nrelWattileExt repo.
-Create a step-by-step example here for how to import, set up, and use the
-model?**
+Step-by-step instructions for an end-to-end demonstration of **nrelWattileExt**
+is available [here]`https://github.com/NREL/nrelWattileExt/blob/main/demo/DEMO.md`.
