@@ -30,3 +30,5 @@ src:
     // Export the data
     wattileExportTrainingData(predictors, target, dates, dir, opts)
   end
+wattileDemo
+

@@ -14,6 +14,7 @@ src:
     // Commit
     diff(null, taskRec, {add}).commit
   end
+wattileDemo
 ---
 name:wattileDemoRunSetup
 doc:"Configures the Headquarters-Electricity model for prediction using the '\"setup\"' action of `wattilePythonTask()`."
@@ -31,6 +32,7 @@ src:
       })
       .futureGet
   end
+wattileDemo
 ---
 name:wattileDemoRunPrediction
 doc:"Runs a prediction using the Headquarters-Electricity model and returns the results."
@@ -52,3 +54,5 @@ src:
       })
       .futureGet
   end
+wattileDemo
+

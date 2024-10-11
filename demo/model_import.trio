@@ -35,6 +35,7 @@ src:
     ioMove(configFile, parseUri(configFile.toStr + ".bak"))
     ioWriteStr(configStr, configFile)
   end
+wattileDemo
 ---
 name:wattileDemoImportModel
 doc:"Import the Headquarters-Electricity Wattile model to SkySpark."
@@ -44,6 +45,7 @@ src:
     // Import and commit the model record
     wattileImportModels(`io/wattile/Headquarters-Electricity/`, {commit}) // To preview, omit the "commit"
   end
+wattileDemo
 ---
 name:wattileDemoUpdateReadOpts
 doc:
@@ -60,3 +62,5 @@ src:
     // Update the wattileReadOpts tag and commit
     diff(model, {wattileReadOpts:{interval:15min, interpolate}}).commit
   end
+wattileDemo
+
