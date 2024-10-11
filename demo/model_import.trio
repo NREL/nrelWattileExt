@@ -35,3 +35,28 @@ src:
     ioMove(configFile, parseUri(configFile.toStr + ".bak"))
     ioWriteStr(configStr, configFile)
   end
+---
+name:wattileDemoImportModel
+doc:"Import the Headquarters-Electricity Wattile model to SkySpark."
+func
+src:
+  () => do
+    // Import and commit the model record
+    wattileImportModels(`io/wattile/Headquarters-Electricity/`, {commit}) // To preview, omit the "commit"
+  end
+---
+name:wattileDemoUpdateReadOpts
+doc:
+  Update the Headquarters-Electricity Wattile model record to have a `wattileReadOpts` tag that matches the original options used for data export:
+  
+    interval: 15min
+    interpolate
+func
+src:
+  () => do
+    // Model record
+    model: read(wattileModel and dis=="Headquarters-Electricity")
+    
+    // Update the wattileReadOpts tag and commit
+    diff(model, {wattileReadOpts:{interval:15min, interpolate}}).commit
+  end

@@ -158,9 +158,28 @@ This section demonstrates how to import a trained Wattile model into SkySpark.
      [Demo Model Target and Predictor Refs](#demo-model-target-and-predictor-refs)
      below.
 
-5. **TO DO:** Model import command
+5. To import the "Headquarters-Electricity" model, run the following command:
 
-6. **TO DO:** Model record query
+   ```
+   wattileImportModels(`io/wattile/Headquarters-Electricity/`, {commit})
+   ```
+   
+   This code is also available in the function `wattileDemoImportModel()`. To
+   view your newly created model record, query for `wattileModel`.
+
+6. For the predictions to work correctly, the model's `wattileReadOpts` tag must
+   be updated to match the settings used in the original data export. These
+   options were:
+   
+   - `interval: 15min`
+   - `interpolate`
+   
+   To add `wattileReadOpts` to the model record, do one of the following:
+
+   a. Manually edit the "Headquarters-Electricity" `wattileModel` record to add
+      a `wattileReadOpts` tag (Dict) with the value
+      `{interval: 15min, interpolate}`.
+   b. Run the example code in `wattileDemoUpdateReadOpts()`.
 
 ### Demo Model Target and Predictor Refs
 
