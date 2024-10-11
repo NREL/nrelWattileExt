@@ -6,8 +6,8 @@ This directory contains a simple demonstration of **nrelWattileExt** using the
 created using:
 
 - [SkySpark] 3.0.10
-- [Wattile] 0.3
-- [nrelWattileExt] 0.3
+- [Wattile] 0.3.0
+- [nrelWattileExt] 0.3.0
 
 [SkySpark]: https://skyfoundry.com/product "SkySpark"
 [Wattile]: https://github.com/NREL/Wattile/releases/ "Wattile"
