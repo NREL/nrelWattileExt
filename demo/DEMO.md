@@ -110,9 +110,7 @@ Wattile supports a wide variety of model configuration options for tasks such as
 data cleaning, feature generation, neural network architecture, and
 hyperparameter tuning. For more information, see the Wattile [documentation].
 
-[documentation]: https://github.com/NREL/Wattile/tree/0.2.0?tab=readme-ov-file#quick-start
-
-**TO DO:** Update to 0.3 tree when 0.3 release is public
+[documentation]: https://github.com/NREL/Wattile/tree/v0.3.0?tab=readme-ov-file#quick-start
 
 ### Model Structure
 
