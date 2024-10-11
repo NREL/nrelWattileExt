@@ -14,6 +14,9 @@ This file tracks notable changes to **nrelWattileExt**. The format is based on
 
 - `wattileViewPredictionHistory()`: a function for visualizing Wattile
   prediction history
+- `wattileViewPredictionQuantiles()`: a function for checking the goodness of
+  fit of a Wattile model
+- Demo with step-by-step instructions and example code
 
 ### Changed
 
