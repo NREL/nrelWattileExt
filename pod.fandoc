@@ -207,8 +207,10 @@ models from SkySpark data:
    or export options.
 3. Copy the exported training data set to the computer that will be used to
    train the Wattile model(s).
-4. Train each model following the Wattile package documentation. **TO DO: What
-   is the best link for documenting how to train a model? Link here.**
+4. Train each model following the Wattile package documentation. An example
+   Python notebook that demonstrates model training is available in the
+   [Wattile_Examples]`https://github.com/NREL/Wattile_Examples/tree/main/ex-1-skyspark-demo/notebooks`
+   GitHub repository.
 
 When data sets originate from SkySpark via `wattileExportTrainingData()`,
 Wattile stores the required predictor and target metadata in
