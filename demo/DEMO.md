@@ -271,18 +271,18 @@ the model. Technical details are available in the **nrelWattileExt** docs.
 
 1. To create a prediction point manually:
 
-   a. Open the *Builder*
-   b. Find the "Headquarters" `site`, "Basment" `space`, "ElecMeter-Main"
+   1. Open the *Builder*
+   2. Find the "Headquarters" `site`, "Basment" `space`, "ElecMeter-Main"
       `equip`
-   c. Select the meter's `kW` point and duplicate it (create a copy).
-   d. Edit the new "kW Copy" point:
+   3. Select the meter's `kW` point and duplicate it (create a copy).
+   4. Edit the new "kW Copy" point:
    
-      i. Remove the `sensor` and `cur` tags
-      ii. Add the `wattilePoint` and `prediction` tags
-      iii. Add the `predictionOf` tag and reference it to the original "kW"
-           point
-      iv. Add the `wattileModelRef` tag and reference it to the "Headquarters-
-           Electricity" Wattile model
+      1. Remove the `sensor` and `cur` tags
+      2. Add the `wattilePoint` and `prediction` tags
+      3. Add the `predictionOf` tag and reference it to the original "kW"
+         point
+      4. Add the `wattileModelRef` tag and reference it to the "Headquarters-
+         Electricity" Wattile model
 
 2. To create prediction points automatically: view and run the example code in:
    
