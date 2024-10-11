@@ -190,10 +190,10 @@ This section demonstrates how to import a trained Wattile model into SkySpark.
    
    To add `wattileReadOpts` to the model record, do one of the following:
 
-   a. Manually edit the "Headquarters-Electricity" `wattileModel` record to add
+   1. Manually edit the "Headquarters-Electricity" `wattileModel` record to add
       a `wattileReadOpts` tag (Dict) with the value
       `{interval: 15min, interpolate}`.
-   b. Run the example code in `wattileDemoUpdateReadOpts()`.
+   2. Run the example code in `wattileDemoUpdateReadOpts()`.
 
 ### Demo Model Target and Predictor Refs
 
