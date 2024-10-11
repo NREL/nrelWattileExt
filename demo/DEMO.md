@@ -199,9 +199,37 @@ with a new version that contains `id` values matched to your local demo project.
 Running Predictions
 -------------------
 
-- Create task
-- Model setup
-- Execute a prediction
+*Example code for this section is found in `run_prediction.trio`.*
+
+Because Wattile is Python-based, it runs in a Docker container. This sections
+demonstrates how to use the task framework to run Wattile model predictions.
+
+1. Create a task for interacting with Wattile. The task should be configured
+   like this:
+   
+   ```
+   dis: "Wattile Python Task"
+   task
+   taskExpr:
+     (msg) => wattilePythonTask(msg, "wattile_0.2.0")
+   wattileTask
+   ```
+
+   Make sure the second argument of `wattilePythonTask` matches the name of the
+   Docker image that you built. The `wattileTask` tag here is not required, but
+   it makes it easy to query for the correct task. The example code in
+   `wattileDemoCreateWattileTask()` will create this task record
+   programmatically.
+
+2. Before running predictions, the Wattile model must be configured for
+   prediction. Run the example code in `wattileDemoRunSetup()`. This executes
+   the `"setup"` action of `wattilePythonTask`.
+
+3. The example model is now ready! To retrieve a prediction, run the example
+   code in `wattileDemoRunPrediction()`. You will see a grid with predictions
+   for each quantile available from the model for the requested time span (in
+   this case, yesterday). For more information about the format of this grid,
+   see the **nrelWattileExt** docs.
 
 Syncing Prediction History
 --------------------------

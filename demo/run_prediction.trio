@@ -1,0 +1,54 @@
+name:wattileDemoCreateWattileTask
+doc:"Creates the `wattileTask` record needed to interact with Wattile. Make sure you specify the correct name of your Docker image."
+func
+src:
+  (image:"wattile_0.3.0") => do
+    // Task record
+    taskRec: {
+      task,
+      wattileTask, 
+      taskExpr:"(msg) => wattilePythonTask(msg, \"" + image + "\")",
+      dis:"Wattile Python Task"
+    }
+    
+    // Commit
+    diff(null, taskRec, {add}).commit
+  end
+---
+name:wattileDemoRunSetup
+doc:"Configures the Headquarters-Electricity model for prediction using the '\"setup\"' action of `wattilePythonTask()`."
+func
+src:
+  () => do
+    // Model record
+    model: read(wattileModel and dis=="Headquarters-Electricity")
+    
+    // Run the setup action
+    read(wattileTask)
+      .taskSend({
+        action: "setup",
+        model: model
+      })
+      .futureGet
+  end
+---
+name:wattileDemoRunPrediction
+doc:"Runs a prediction using the Headquarters-Electricity model and returns the results."
+func
+src:
+  () => do
+    // Model record
+    model: read(wattileModel and dis=="Headquarters-Electricity")
+    
+    // Time span to predict
+    span: yesterday()
+    
+    // Run the predict action
+    read(wattileTask)
+      .taskSend({
+        action: "predict",
+        model: model,
+        span: span
+      })
+      .futureGet
+  end
