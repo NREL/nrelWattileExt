@@ -1127,6 +1127,7 @@ doc:
   
   The first color in 'predictionGradient' corresponds to the 0th percentile prediction and the last color corresponds to the 50th percentile (median) prediction. The gradient is interpolated in reverse for the 50th to 100th percentile.
 func
+overridable
 src:
   (model, span, target:null, opts:{}) => do
     // Default options
@@ -1219,6 +1220,118 @@ src:
     
     // Combine and return
     hisJoin([predictionHis, targetHis])
-      .addMeta({chartLegendNoSort})
+      .addMeta({
+        title: "Wattile: Prediction History",
+        subtitle: model.dis + " | " + format(span),
+        chartLegendNoSort
+      })
       .hisRollupAuto(opts["interval"])
+  end
+---
+name:wattileViewPredictionQuantiles
+doc:
+  Visualize the goodness of fit of a Wattile 'model' during 'span'. The target is resolved via the model's `wattileTargetRef` or can be specified by the user via 'target'.
+  
+  The output of this function is a grid intended for viewing as a scatterplot:
+  
+  - Each plot point '(q, r)' represents one quantile predicted by the Wattile model
+  - The X-axis value 'q' is the expected (predicted) quantile
+  - The Y-axis value 'r' is the actual (observed) quantile
+  
+  The result is similar to the [quantile-quantile plot]`https://en.wikipedia.org/wiki/Q%E2%80%93Q_plot` (QQ plot) used to compare probability distributions.
+  
+  Details
+  -------
+  
+  To generate the plot, the function:
+  
+  1. Reads the target's history and the model prediction history for 'span'
+  2. Interpolates the history grid
+  3. For each predicted quantile, calculate the fraction of target history values that are less than or equal to the prediction history values; this is the observed quantile
+  4. Record the observed ('q') vs. predicted ('r') quantile as an output point on the plot.
+  
+  Only the quantiles associated with the available prediction points (via the `wattileQuantile` tag) are included in the analysis.
+  
+  Interpretation
+  --------------
+  
+  For each plot point '(q, r)':
+  
+  - If 'r = q', the model accurately predicted the target values for quantile 'q' within 'span'
+  - If 'r > q', the model overpredicted the target values for quantile 'q' within 'span'
+  - If 'r < q', the model underpredicted the target values for quantile 'q' within 'span'
+  
+  Ideally, all points on the plot should lie on a 45° diagonal line (slope 1, intercept 0). This line is plotted in red for reference.
+  
+  **Caution!** This diagnostic plot only shows whether, overall, there is a bias in the predictions for specific quantiles. It does not provide information about how well the predictions trends match the target as it changes with time or with respect to the predictor variables.
+func
+overridable
+src:
+  (model, span, target:null) => do
+    // Plot parameters
+    pointColor: "#34495e"
+    parityLineWidth: 0.5
+    parityLineColor: "red"
+  
+    // Get model
+    model = model.toRec
+  
+    // Get time span
+    span = span.toSpan
+    
+    // Get target point
+    targetPoint: if (target != null) do
+      target.toRec
+    else if (model.has("wattileTargetRef")) do
+      wattileResolveRec(model->wattileTargetRef)
+    else do
+      throw "Target was not specified and model does not have 'wattileTargetRef' tag."
+    end
+  
+    // Get prediction points
+    predictionPoints: xq()
+      .xqReadAll(point and wattilePoint and prediction and wattileQuantile and wattileModelRef==model.toRecId)
+      .xqExecute
+      .sort("wattileQuantile")
+    
+    // Read target history
+    targetHis: xq().xqReadByIds(targetPoint.toRecIdList).xqHisRead(span, {-limit}).xqExecute()
+    
+    // Calculate observed vs. predicted quantiles from target vs. prediction history   
+    observations: predictionPoints.toRecList.map() p => do
+      // Read prediction history
+      predictionHis: xq().xqReadByIds(p.toRecIdList).xqHisRead(span, {-limit}).xqExecute()
+      
+      // Combine and interpolate
+      hisGrid: hisJoin([
+          targetHis.renameCol("v0", "target"),
+          predictionHis.renameCol("v0", "prediction")
+        ])
+        .hisInterpolate
+        .hisClip
+        .findAll(row => row.hasAll(["target", "prediction"]))
+      
+      // Total values
+      n: hisGrid.size
+      
+      // Number of values less than or equal to predicted quantile
+      m: hisGrid.findAll(row => row->target <= row->prediction).size
+      
+      // Return X-value = predicted quantile, Y-value = observed quantile
+      {q:p->wattileQuantile, r:(m/n)}
+    end
+    
+    // Quantiles
+    quantiles: predictionPoints.colToList("wattileQuantile")
+    
+    // Output grid
+    observations
+      .toGrid
+      .addRows([{q:0, ref:0}, {q:1, ref:1}])
+      .addRows(quantiles.map() q => {q:q, ref:q})
+      .sort("q")
+      .addMeta({view:"chart", title:"Wattile: Observed vs. Predicted Quantiles", subtitle:model.dis + " | " + format(span)})
+      .addColMeta("q", {dis:"Predicted Quantile", chartMin:0, chartMax:1})
+      .addColMeta("r", {dis:"Observed Quantile", chartType:"scatter", color:pointColor, chartGroup:"A", chartMin:0, chartMax:1})
+      .addColMeta("ref", {dis:"Ideal Relationship", chartType:"line", color:parityLineColor, strokeWidth:parityLineWidth, chartGroup:"A"})
   end
