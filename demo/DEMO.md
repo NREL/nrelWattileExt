@@ -295,9 +295,9 @@ the model. Technical details are available in the **nrelWattileExt** docs.
 1. To create a prediction point manually:
 
    1. Open the *Builder*
-   2. Find the "Headquarters" `site`, "Basment" `space`, "ElecMeter-Main"
+   2. Find the "Headquarters" `site`, "Basement" `space`, "ElecMeter-Main"
       `equip`
-   3. Select the meter's `kW` point and duplicate it (create a copy).
+   3. Select the meter's "kW" `point` and duplicate it.
    4. Edit the new "kW Copy" point:
    
       1. Remove the `sensor` and `cur` tags
@@ -307,11 +307,14 @@ the model. Technical details are available in the **nrelWattileExt** docs.
       4. Add the `wattileModelRef` tag and reference it to the "Headquarters-
          Electricity" Wattile model
 
-2. To create prediction points automatically: view and run the example code in:
+2. To create prediction points automatically:
+
+   View and run the example code in:
    
    ```
    wattileDemoCreatePredictionPoints()
    ```
+   
    This function creates one prediction point, with appropriate marker tags, for
    each quantile that is available from the Wattile model (per the model
    config). The function can be easily adapted to accept the model as an input
@@ -368,12 +371,12 @@ up-to-date by syncing all history after each point's `hisEnd`. Syncing
 prediction history is best accomplished with a dedicated task.
 
 1. Create a task for syncing Wattile predictions. The task should be configured
-   like this:
+   something like this:
    
    ```
    dis: "Sync Wattile Predictions"
    obsSchedule
-   obsScheduleFreq:5min
+   obsScheduleFreq: 5min
    task
    taskExpr:
      wattileSyncHis(
