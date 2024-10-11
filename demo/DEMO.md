@@ -50,7 +50,9 @@ in your demo project's `io/` folder and then import the function records:
 
 ```
 importFunctions(`io/data_export.trio`, {commit})
-... TO DO
+importFunctions(`io/model_import.trio`, {commit})
+importFunctions(`io/run_predictions.trio`, {commit})
+importFunctions(`io/sync_predictions.trio`, {commit})
 ```
 
 Exporting Training Data
