@@ -199,7 +199,7 @@ with a new version that contains `id` values matched to your local demo project.
 Running Predictions
 -------------------
 
-*Example code for this section is found in `run_prediction.trio`.*
+*Example code for this section is found in `run_predictions.trio`.*
 
 Because Wattile is Python-based, it runs in a Docker container. This sections
 demonstrates how to use the task framework to run Wattile model predictions.
@@ -234,13 +234,128 @@ demonstrates how to use the task framework to run Wattile model predictions.
 Syncing Prediction History
 --------------------------
 
-- Describe prediction point structure in brief; reference extension docs.
+*Example code for this section is found in `sync_predictions.trio`.*
+
+The real power of **nrelWattileExt** lies in syncing predictions from a Wattile
+model over time using new predictor data. Syncing predictions requires creating
+one or more `wattilePoint` records, each of which will receive predictions from
+a Wattile model for a single quantile. This section demonstrates how to create
+points to receive the predictions and then run a task to sync predictions from
+the model. Technical details are available in the **nrelWattileExt** docs.
 
 ### Create Prediction Points
 
-- Create a point manually
-- Create points automatically
+1. To create a prediction point manually:
+
+   a. Open the *Builder*
+   b. Find the "Headquarters" `site`, "Basment" `space`, "ElecMeter-Main"
+      `equip`
+   c. Select the meter's `kW` point and duplicate it (create a copy).
+   d. Edit the new "kW Copy" point:
+   
+      i. Remove the `sensor` and `cur` tags
+      ii. Add the `wattilePoint` and `prediction` tags
+      iii. Add the `predictionOf` tag and reference it to the original "kW"
+           point
+      iv. Add the `wattileModelRef` tag and reference it to the "Headquarters-
+           Electricity" Wattile model
+
+2. To create prediction points automatically: view and run the example code in
+   `wattileDemoCreatePredictionPoints()`. This function creates one prediction
+   point, with appropriate marker tags, for each quantile that is available from
+   the Wattile model (per the model config). The function can be easily adapted
+   to accept the model as an input argument, offering a way to quickly create
+   prediction points for a large number of Wattile models.
+
+In practice, after you create prediciton points you may need to tweak their tags
+to match the predictions supplied by the Wattile model. For example, you may
+wish to modify the `hisMode` and `hisInterval` tags.
 
 ### Initial Prediction Sync
 
+The `wattileSyncHis` function uses the `"predict"` action of `wattilePythonTask`
+to run model predictions and store the history on `wattilePoint` points.
+
+1. To synchronize an initial span of prediction data, run the following code:
+
+```
+// Initial prediction sync
+taskRun(
+  wattileSyncHis(
+    readAll(wattilePoint and wattileModelRef->dis=="Headquarters-Electricity"),
+    read(wattileTask), // Task
+    lastMonth().start, // Initial span; modify as desired
+    {limit:1day}       // Options
+  )
+).futureGet
+```
+
+This code is also available in the function `wattileDemoInitialSync()`. After
+running the example code, your demo project should contain one day of
+predictions: the first day of last month.
+
+2. (Optional) To view the predictions you just created, you can run:
+
+   ```
+   readAll(point and power and equipRef->elec and equipRef->siteMeter and
+     siteRef->dis=="Headquarters")
+     .hisRead(lastMonth().start)
+   ```
+   
+   To view the predictions with pretty formatting, you can use the
+   `wattileViewPredictionHistory()` convenience function:
+
+   ```
+   read(wattileModel and dis=="Headquarters-Electricity")
+     .wattileViewPredictionHistory(lastMonth().start)
+   ```
+
 ### Create a Sync Task
+
+Like the connector framework, **nrelWattileExt** supports keeping points
+up-to-date by syncing all history after each point's `hisEnd`. Syncing
+prediction history is best accomplished with a dedicated task.
+
+1. Create a task for syncing Wattile predictions. The task should be configured
+   like this:
+   
+   ```
+   dis: "Sync Wattile Predictions"
+   obsSchedule
+   obsScheduleFreq:5min
+   task
+   taskExpr:
+     wattileSyncHis(
+       readAll(wattilePoint and wattileModelRef and hisEnd), // Points
+       read(task and wattileTask), // Task
+       null, // Span
+       {limit:7day, delay:15min, hotPeriod:3h, forecast} // Options
+     )
+   ```
+   
+   Notice how `read(task and wattileTask)` is used to query the Wattile Python
+   task that you created previously. The example code in
+   `wattileDemoCreateSyncTask()` will create this task record programmatically.
+
+2. To sync a few weeks of predictions, go to the *Task* app, *Debug* tab and use
+   the "Send" button to run the sync task a few times. (It does not matter what
+   message you send to the task.)
+   
+3. (Optional) Once you have synced up to the present, view last week's 
+   predictions: 
+
+   ```
+   read(wattileModel and dis=="Headquarters-Electricity")
+     .wattileViewPredictionHistory(lastWeek())
+   ```
+
+4. (Optional) The `wattileViewPredictionQuantiles()` can be used as a diagnostic
+   to see if there is any bias in the quantile predictions over a given span:
+   
+   ```
+   read(wattileModel and dis=="Headquarters-Electricity")
+     .wattileViewPredictionQuantiles(lastMonth())
+   ```
+   
+   For an explanation of how to interpret this plot, see the
+   `wattileViewPredictionQuantiles()` function documentation.
