@@ -32,6 +32,15 @@ This file tracks notable changes to **nrelWattileExt**. The format is based on
 - Docker image updated to Python 3.12
 - Docker build now installs Wattile from [PyPi](https://pypi.org/project/wattile/)
   by default
+- Documentation improvements
+
+### Removed
+
+- Original `test/` suite
+
+### Fixed
+
+- Comparison links in `CHANGELOG.md`
 
 ## [v0.2.1] (2024-07-09)
 
