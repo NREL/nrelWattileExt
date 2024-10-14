@@ -203,6 +203,8 @@ stored in the [Trio]-formatted files within `lib/`:
 - `supportFuncs.trio`: Support and convenience functions for interacting with
   Wattile models and their proxy records in SkySpark
 - `utilityFuncs.trio`: Other utility functions (internal use)
+- `vizFuncs.trio`: Visualization functions for Wattile models and prediction
+  history
 
 The simplest development workflow is to import these functions into SkySpark,
 make changes *Code* app (and test via *Tools*), export back to Trio format, and
@@ -242,6 +244,7 @@ Resource Extension App Note].
    - `pythonFuncs.trio`
    - `supportFuncs.trio`
    - `utilityFuncs.trio`
+   - `vizFuncs.trio`
 
 5. (Optional) Pick a marker (or "flag") tag to attach to each imported function
    to facilitate easy querying for later export.
