@@ -11,9 +11,29 @@ Laboratory]`https://www.nrel.gov`.
 - [Change log]`https://github.com/NREL/nrelWattileExt/blob/main/CHANGELOG.md`
 - Report issues [here]`https://github.com/NREL/nrelWattileExt/issues`
 
-Wattile models predict discrete quantiles of the probability distribution of a
-target quantity (typically energy consumption) using the historical time series
-data from one or more predictors (typically weather data).
+**Caution!** Wattile and **nrelWattileExt** are beta software. Syntax and
+interfaces are subject to change and you may experience unexpected behavior.
+Report bugs for Wattile [here]`https://github.com/NREL/Wattile/issues` and for
+**nrelWattileExt** [here]`https://github.com/NREL/nrelWattileExt/issues`.
+
+Introduction [#introduction]
+****************************
+
+Wattile predicts discrete quantiles of the probability distribution of a target
+quantity (typically power or energy consumption) using historical time series
+data from one or more predictors (typically weather data). Wattile is a variant
+of [quantile regression]`https://en.wikipedia.org/wiki/Quantile_regression`, in
+which the goal is to predict the conditional probability distribution of some
+quantity 'y' given 'x'. In other words, for a given input 'x' and quantile 'q'
+('0 ≤ q ≤ 1'), predict a value 'z' such that:
+
+- There is probability 'q' that 'y ≤ z'
+- There is probability '(1−q)' that 'y > z'
+
+So, for example, if 'q = 0.25' (the 25th percentile) and the Wattile prediction
+output is 3, it means the Wattile model predicts that 25% of the time the target
+quantity will be less than or equal to 3 and 75% of the time the target quantity
+will be greater than 3 (given the values of the predictors).
 
 Architecture [#architecture]
 ****************************
@@ -71,6 +91,7 @@ single directory, including:
 - 'configs.json': Model configuration parameters
 - 'predictors_target_config.json': List of model input points (predictors) and
   the model target (point being predicted)
+- 'metadata.json': Model metadata (Wattile v0.3 or later)
 - Various data files
 
 For use with SkySpark, a Wattile model's 'predictors_target_config.json' *must*
@@ -94,6 +115,7 @@ have tags:
 - `wattilePredictors`: `haystack::Grid` of predictor metadata
 - `wattileTargetRef`: `haystack::Ref` to the prediction target
 - `wattileReadOpts`: Options `haystack::Dict` compatible with `wattileReadHis()`
+- `wattileVersion`: Wattile version string
 - `dis`: Display name for the model
 - `tz`: Time zone of model prediction output
 - `unit`: Units of model prediction output
@@ -190,8 +212,10 @@ models from SkySpark data:
    or export options.
 3. Copy the exported training data set to the computer that will be used to
    train the Wattile model(s).
-4. Train each model following the Wattile package documentation. **TO DO: What
-   is the best link for documenting how to train a model? Link here.**
+4. Train each model following the Wattile package documentation. An example
+   Python notebook that demonstrates model training is available in the
+   [Wattile_Examples]`https://github.com/NREL/Wattile_Examples/tree/main/ex-1-skyspark-demo/notebooks`
+   GitHub repository.
 
 When data sets originate from SkySpark via `wattileExportTrainingData()`,
 Wattile stores the required predictor and target metadata in
@@ -261,9 +285,13 @@ configuration options and their effects. For example, the 'limit' option above
 restricts predictions to blocks of 15 days at a time, which prevents executing
 Wattile models with excessively large input data sets.
 
+Initial Sync
+------------
+
 Before an automatic span can be used (by setting 'span' to Null), `wattilePoint`
 histories must be initialized using a non-Null 'span'. For example:
 
+  // Initial prediction sync
   taskRun(
     wattileSyncHis(
       readAll(wattilePoint and not hisEnd), // Uninitialized points
@@ -276,10 +304,24 @@ histories must be initialized using a non-Null 'span'. For example:
 Remember to check that each point has history (non-Null 'hisEnd') after running
 this initial sync.
 
-Example [#example]
-******************
+Visualizing Predictions
+-----------------------
 
-**TO DO: Create an example using the SkySpark demo project. Train this model
-and make it available either in the Wattile repo or the nrelWattileExt repo.
-Create a step-by-step example here for how to import, set up, and use the
-model?**
+The function `wattileViewPredictionHistory()` can be used to visualize Wattile
+predictions as shaded regions on a time series plot. The appearance of the
+time series plot can be customized.
+
+  read(wattileModel).wattileViewPredictionHistory(yesterday())
+  
+  read(wattileModel)
+    .wattileViewPredictionHistory(
+      lastWeek(),
+      null,
+      {predictionGradient:["#f6eff7", "#bdc9e1", "#67a9cf", "#02818a"]}
+    )
+
+Demo [#demo]
+************
+
+Step-by-step instructions for an end-to-end demonstration of **nrelWattileExt**
+is available [here]`https://github.com/NREL/nrelWattileExt/blob/main/demo/DEMO.md`.
