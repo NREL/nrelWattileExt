@@ -1,0 +1,66 @@
+name:wattileDemoFixPredictorsTargetConfig
+doc:
+  Update 'predictors_target_config' for the Headquarters-Electricity model to have the correct refs for the local demo project.
+  
+  *This function is not part of the normal Wattile workflow; it is only needed to normalize the example model for each specific demo project. For more information, see 'DEMO.md'.*
+func
+src:
+  () => do
+    // Predictors and target config file
+    configFile: `io/wattile/Headquarters-Electricity/predictors_target_config.json`
+    
+    // Read JSON
+    config: ioReadJson(configFile, {v3})
+    
+    // Read string
+    configStr: ioReadStr(configFile)
+    
+    // Function to update original ref to new ref
+    // (Not a recommended approach for a large database, but works ok in demo project!)
+    getNewRef: (pt) => do
+      // Match by 'dis'
+      readAll(point).find(p => p.dis == pt.dis).toRecId
+    end
+    
+    // Find/replace old refs with corrected versions from local DB
+    config->predictors
+      .add(config->target)
+      .map() p => do
+        oldRefStr: p->id.toStr
+        newRefStr: p.getNewRef.toStr
+        configStr = configStr.replace(oldRefStr, newRefStr)
+      end
+    
+    // Back up original and replace with new
+    ioMove(configFile, parseUri(configFile.toStr + ".bak"))
+    ioWriteStr(configStr, configFile)
+  end
+wattileDemo
+---
+name:wattileDemoImportModel
+doc:"Import the Headquarters-Electricity Wattile model to SkySpark."
+func
+src:
+  () => do
+    // Import and commit the model record
+    wattileImportModels(`io/wattile/Headquarters-Electricity/`, {commit}) // To preview, omit the "commit"
+  end
+wattileDemo
+---
+name:wattileDemoUpdateReadOpts
+doc:
+  Update the Headquarters-Electricity Wattile model record to have a `wattileReadOpts` tag that matches the original options used for data export:
+  
+    interval: 15min
+    interpolate
+func
+src:
+  () => do
+    // Model record
+    model: read(wattileModel and dis=="Headquarters-Electricity")
+    
+    // Update the wattileReadOpts tag and commit
+    diff(model, {wattileReadOpts:{interval:15min, interpolate}}).commit
+  end
+wattileDemo
+

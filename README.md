@@ -11,6 +11,11 @@ the [National Renewable Energy Laboratory].
 [Python]: https://www.python.org/ "Python Programming Language"
 [National Renewable Energy Laboratory]: https://www.nrel.gov "NREL Website"
 
+**Caution!** Wattile and **nrelWattileExt** are beta software. Syntax and
+interfaces are subject to change and you may experience unexpected behavior.
+Report bugs for Wattile [here](https://github.com/NREL/Wattile/issues) and for
+**nrelWattileExt** [here](https://github.com/NREL/nrelWattileExt/issues).
+
 Build
 -----
 
@@ -110,6 +115,14 @@ To build the required Docker image containing [Wattile]:
    (The `--no-cache` option is used here to ensure that you do not accidentally
    build from an outdated, cached local copy of the repository.)
 
+If you have trouble building the image, check the Docker docs for
+[build cache invalidation] and [docker image pull]. You may need to clear the
+cache entirely, pull an updated `hxpy` base image manually, and/or add the
+`--pull` option to the build command.
+
+[build cache invalidation]: https://docs.docker.com/build/cache/invalidation/
+[docker image pull]: https://docs.docker.com/reference/cli/docker/image/pull/
+
 If you did not build the Docker image on the same system where SkySpark runs,
 you will also need to copy and install the Docker image on your SkySpark system:
 
@@ -190,6 +203,8 @@ stored in the [Trio]-formatted files within `lib/`:
 - `supportFuncs.trio`: Support and convenience functions for interacting with
   Wattile models and their proxy records in SkySpark
 - `utilityFuncs.trio`: Other utility functions (internal use)
+- `vizFuncs.trio`: Visualization functions for Wattile models and prediction
+  history
 
 The simplest development workflow is to import these functions into SkySpark,
 make changes *Code* app (and test via *Tools*), export back to Trio format, and
@@ -229,6 +244,7 @@ Resource Extension App Note].
    - `pythonFuncs.trio`
    - `supportFuncs.trio`
    - `utilityFuncs.trio`
+   - `vizFuncs.trio`
 
 5. (Optional) Pick a marker (or "flag") tag to attach to each imported function
    to facilitate easy querying for later export.

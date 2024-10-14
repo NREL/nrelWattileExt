@@ -1,0 +1,142 @@
+name:wattileDemoCreatePredictionPoints
+doc:
+  Create prediction points to receive data from the Headquarters-Electricity Wattile model. Created points:
+  
+  - Have the same parent 'site', 'space', and 'equip' as the model's target
+  - Have the same marker and ref tags as the model's target, except 'prediction' replaces 'sensor'
+  - Reference the model's target via the 'predictionOf' tag
+  
+  One point is created per quantile available in the trained Wattile model. Points that conflict with existing points (based on 'predictionOf', 'wattileModelRef', and 'wattileQuantile' tags) are skipped, with a warning.
+func
+wattileDemo
+src:
+  () => do
+    // Model record
+    model: read(wattileModel and dis=="Headquarters-Electricity")
+    
+    // Local helper function
+    isMarker: (v) => v == marker()
+    
+    // Unwanted (marker and ref) tags to remove
+    removeTags: ["id", "spec", "cur", "sensor", "sp", "cmd"]
+    
+    // Get model uri
+    uri: model->uri
+    
+    // Get model target
+    target: model->wattileTargetRef.wattileResolveRec
+    
+    // Get available quantiles
+    config: ioReadJson(uri + "configs.json")
+    quantiles: config["learning_algorithm"]["quantiles"]
+    
+    // Template for new prediction points
+    template: target.findAll((v, n) => (v.isRef or v.isMarker) and not removeTags.contains(n))
+  
+    // New prediction points
+    predictionPoints: quantiles.map() q => do
+      // New prediction point name
+      if (target.has("navName")) do
+        navName: target->navName
+      else do
+        navName: target.dis
+      end
+      navName = navName + " Prediction (Q = " + format(q, "0.##") + ")"
+      
+      // New prediction point
+      new: {
+        his,
+        point,
+        prediction,
+        predictionOf: target.toRecId,
+        kind: "Number",
+        disMacro: "\$equipRef \$navName",
+        navName: navName,
+        wattilePoint,
+        wattileModelRef: model.toRecId,
+        wattileQuantile: q,
+        unit: target["unit"], // Match target units
+        tz: target["tz"]  // Match target time zone
+      }
+  
+      // Merge markers and refs from template
+      new = new.merge(template)
+      
+      // Check for conflict
+      existing: read(
+        wattilePoint and prediction and predictionOf==new->predictionOf and
+          wattileModelRef==new->wattileModelRef and wattileQuantile==new->wattileQuantile,
+        false
+      )
+      if (existing != null) do
+        logWarn(
+          "wattileDemoCreatePredictionPoints", 
+          "Skipped quantile " + q.toStr + " when creating prediction points; " +
+          "Point " + wattileRecDisWithId(existing) + " already exists."
+        )
+        return null
+      end
+      
+      // Return new point
+      return new
+    end
+    
+    // Remove any skipped points
+    predictionPoints = predictionPoints.removeNull
+    
+    // Create diffs
+    diffs: predictionPoints.map() rec => diff(null, rec, {add})
+      
+    // Commit
+    if (not diffs.isEmpty) do
+      newPoints: diffs.commit
+    else do
+      newPoints: []
+    end
+  end
+---
+name:wattileDemoInitialSync
+doc:"Syncs an initial batch of predictions for the Headquarters-Electricity Wattile model. Syncs one day of predictions: the first day of last month."
+func
+wattileDemo
+src:
+  () => do
+    // Initial prediction sync for the Headquarters-Electricity model
+    taskRun(
+      wattileSyncHis(
+        readAll(wattilePoint and wattileModelRef->dis=="Headquarters-Electricity"),
+        read(wattileTask), // Task
+        lastMonth().start, // Initial span; modify as desired
+        {limit:1day}       // Options
+      )
+    ).futureGet
+  end
+---
+name:wattileDemoCreateSyncTask
+doc:
+  Creates a task for automatically syncing predictions from all available Wattile models. The task:
+  
+  - Syncs predictions every 5 minutes
+  - Syncs no more than 7 days at a time
+  - Uses a hot period of 3 hours
+func
+wattileDemo
+src:
+  () => do
+    // Task record
+    syncTaskRec: {
+      task,
+      obsSchedule,
+      obsScheduleFreq: 5min,
+      taskExpr: """wattileSyncHis(
+                     readAll(wattilePoint and wattileModelRef and hisEnd), // Points
+                     read(task and wattileTask), // Task
+                     null, // Span
+                     {limit:30day, delay:15min, hotPeriod:3h, forecast} // Options
+                   )""",
+      dis:"Sync Wattile Predictions"
+    }
+    
+    // Commit
+    diff(null, syncTaskRec, {add}).commit
+  end
