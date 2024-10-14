@@ -6,7 +6,8 @@ FROM python:3.12-slim
 
 # Build Arguments
 ARG WATTILE_BRANCH
-ARG WATTILE_TAG=v0.3.0
+ARG WATTILE_TAG
+ARG WATTILE_VERSION=0.3.0
 ARG HOST_UID=1022
 ARG HOST_GID=1022
 ARG USER_NAME=skyspark
@@ -45,21 +46,35 @@ RUN rm -r /haxall
 ENV HOST_UID=$HOST_UID \
     HOST_GID=$HOST_GID
 
-# Clone Wattile
+# Install Wattile
 RUN mkdir /wattile
-RUN if [ -n "$WATTILE_BRANCH" ]; then \
-        echo "Downloading from: https://github.com/NREL/Wattile/archive/${WATTILE_BRANCH}.tar.gz"; \
-        curl -L https://github.com/NREL/Wattile/archive/${WATTILE_BRANCH}.tar.gz | tar zx -C /wattile  --strip-components 1; \
-    else \
-        echo "Downloading from: https://github.com/NREL/Wattile/archive/refs/tags/${WATTILE_TAG}.tar.gz"; \
-        curl -L https://github.com/NREL/Wattile/archive/refs/tags/${WATTILE_TAG}.tar.gz | tar zx -C /wattile  --strip-components 1; \
-    fi
-
-# Copy Wattile and Models
-RUN mv /wattile/tests/fixtures /wattile/trained_models
-
-# Install Dependices
-RUN cd /wattile && pip install .
+RUN <<EOT
+  if [ -n "$WATTILE_BRANCH" ]
+  then
+    # Download Wattile branch
+    echo "Downloading from: https://github.com/NREL/Wattile/archive/${WATTILE_BRANCH}.tar.gz"
+    curl -L https://github.com/NREL/Wattile/archive/${WATTILE_BRANCH}.tar.gz | tar zx -C /wattile  --strip-components 1
+    
+    # Run pip install
+    cd /wattile
+    pip install .
+    
+  elif [ -n "$WATTILE_TAG" ]
+  then
+    # Download Wattile tag
+    echo "Downloading from: https://github.com/NREL/Wattile/archive/refs/tags/${WATTILE_TAG}.tar.gz"
+    curl -L https://github.com/NREL/Wattile/archive/refs/tags/${WATTILE_TAG}.tar.gz | tar zx -C /wattile  --strip-components 1
+    
+    # Run pip install
+    cd /wattile
+    pip install .
+    
+  else
+    # Install from PyPi
+    echo "Installing Wattile ${WATTILE_VERSION} from PyPi"
+    pip install wattile==${WATTILE_VERSION}
+  fi
+EOT
 
 # Create the group and user defined above, then run as the specified user
 RUN addgroup --gid $HOST_GID $GROUP_NAME
