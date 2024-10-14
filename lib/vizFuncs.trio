@@ -205,8 +205,11 @@ src:
       // Number of values less than or equal to predicted quantile
       m: hisGrid.findAll(row => row->target <= row->prediction).size
       
-      // Return X-value = predicted quantile, Y-value = observed quantile
-      {q:p->wattileQuantile, r:(m/n)}
+      // Return:
+      // - X-value (q) = predicted quantile
+      // - Y-value (r) = observed quantile
+      // - Reference (ref) = ideal quantile
+      {q:p->wattileQuantile, r:(m/n), ref:q}
     end
     
     // Quantiles
@@ -216,7 +219,6 @@ src:
     observations
       .toGrid
       .addRows([{q:0, ref:0}, {q:1, ref:1}])
-      .addRows(quantiles.map() q => {q:q, ref:q})
       .sort("q")
       .addMeta({view:"chart", title:"Wattile: Observed vs. Predicted Quantiles", subtitle:model.dis + " | " + format(span)})
       .addColMeta("q", {dis:"Predicted Quantile", chartMin:0, chartMax:1})
