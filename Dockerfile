@@ -56,7 +56,10 @@ RUN <<EOT
     
     # Run pip install
     cd /wattile
-    pip install .
+    pip install --no-cache-dir .
+    
+    # Clean up
+    rm -r /wattile
     
   elif [ -n "$WATTILE_TAG" ]; then
     # Download Wattile tag
@@ -65,12 +68,15 @@ RUN <<EOT
     
     # Run pip install
     cd /wattile
-    pip install .
+    pip install --no-cache-dir .
+    
+    # Clean up
+    rm -r /wattile
     
   else
     # Install from PyPi
     echo "Installing Wattile ${WATTILE_VERSION} from PyPi"
-    pip install wattile==${WATTILE_VERSION}
+    pip install --no-cache-dir wattile==${WATTILE_VERSION}
   fi
 EOT
 
