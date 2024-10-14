@@ -341,6 +341,13 @@ Alternative Workflow:
    relevant file(s) in the `lib/` directory, replacing the existing versions
    as applicable.
 
+### Demo ###
+
+The `demo/` subdirectory contains resources and instructions for a step-by-step
+demonstration of **nrelWattileExt**. It can also be used for developing and
+testing functions and workflows related to **nrelWattileExt**. (A more
+comprehensive test suite may be added in the future.)
+
 License
 -------
 
