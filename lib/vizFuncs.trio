@@ -209,7 +209,7 @@ src:
       // - X-value (q) = predicted quantile
       // - Y-value (r) = observed quantile
       // - Reference (ref) = ideal quantile
-      {q:p->wattileQuantile, r:(m/n), ref:q}
+      {q:p->wattileQuantile, r:(m/n), ref:p->wattileQuantile}
     end
     
     // Quantiles
