@@ -34,6 +34,6 @@ class Build : BuildPod
   // To publish to StackHub, use: bin/fan /path/to/build.fan publish 
   // For more information, see: https://skyfoundry.com/doc/stackhub/index#publishing
   
-  //@Target { help = "Publish to stackhub.org " }
+  @Target { help = "Publish to stackhub.org " }
   Void publish() { stackhub::PublishTask(this).run }
 }
