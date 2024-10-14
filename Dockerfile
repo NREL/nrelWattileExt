@@ -2,7 +2,7 @@
 ## Need hxpy updated to use Python 3.10+
 ## Until then, re-create hxpy build here
 #FROM ghcr.io/haxall/hxpy:3.1.10
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 # Build Arguments
 ARG WATTILE_BRANCH
@@ -49,20 +49,18 @@ ENV HOST_UID=$HOST_UID \
 # Install Wattile
 RUN mkdir /wattile
 RUN <<EOT
-  if [ -n "$WATTILE_BRANCH" ]
-  then
+  if [ -n "$WATTILE_BRANCH" ]; then
     # Download Wattile branch
-    echo "Downloading from: https://github.com/NREL/Wattile/archive/${WATTILE_BRANCH}.tar.gz"
+    echo "Installing Wattile from: https://github.com/NREL/Wattile/archive/${WATTILE_BRANCH}.tar.gz"
     curl -L https://github.com/NREL/Wattile/archive/${WATTILE_BRANCH}.tar.gz | tar zx -C /wattile  --strip-components 1
     
     # Run pip install
     cd /wattile
     pip install .
     
-  elif [ -n "$WATTILE_TAG" ]
-  then
+  elif [ -n "$WATTILE_TAG" ]; then
     # Download Wattile tag
-    echo "Downloading from: https://github.com/NREL/Wattile/archive/refs/tags/${WATTILE_TAG}.tar.gz"
+    echo "Installing Wattile from: https://github.com/NREL/Wattile/archive/refs/tags/${WATTILE_TAG}.tar.gz"
     curl -L https://github.com/NREL/Wattile/archive/refs/tags/${WATTILE_TAG}.tar.gz | tar zx -C /wattile  --strip-components 1
     
     # Run pip install

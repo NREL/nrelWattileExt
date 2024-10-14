@@ -20,7 +20,7 @@ This file tracks notable changes to **nrelWattileExt**. The format is based on
 - Update license to BSD-3
 - `wattileImportModels()` now imports the Wattile version used to train each
   model and stores it in a `wattileVersion` tag on the model record
-- Docker image updated to Python 3.11
+- Docker image updated to Python 3.12
 - Docker build now installs Wattile from [PyPi](https://pypi.org/project/wattile/)
   by default
 
