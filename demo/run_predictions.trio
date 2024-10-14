@@ -2,7 +2,7 @@ name:wattileDemoCreateWattileTask
 doc:"Creates the `wattileTask` record needed to interact with Wattile. Make sure you specify the correct name of your Docker image."
 func
 src:
-  (image:"wattile_0.3.2") => do
+  (image:"wattile_0.3.1") => do
     // Task record
     taskRec: {
       task,

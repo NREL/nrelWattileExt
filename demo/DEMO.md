@@ -6,7 +6,7 @@ This directory contains a simple demonstration of **nrelWattileExt** using the
 created using:
 
 - [SkySpark] 3.0.10
-- [Wattile] 0.3.2
+- [Wattile] 0.3.1
 - [nrelWattileExt] 0.3.0
 
 [SkySpark]: https://skyfoundry.com/product "SkySpark"
@@ -119,7 +119,7 @@ Wattile supports a wide variety of model configuration options for tasks such as
 data cleaning, feature generation, neural network architecture, and
 hyperparameter tuning. For more information, see the Wattile [documentation].
 
-[documentation]: https://github.com/NREL/Wattile/tree/v0.3.0?tab=readme-ov-file#quick-start
+[documentation]: https://github.com/NREL/Wattile/tree/v0.3.1?tab=readme-ov-file#quick-start
 
 ### Model Structure
 
@@ -225,7 +225,7 @@ demonstrates how to use the task framework to run Wattile model predictions.
    dis: "Wattile Python Task"
    task
    taskExpr:
-     (msg) => wattilePythonTask(msg, "wattile_0.3.0")
+     (msg) => wattilePythonTask(msg, "wattile_0.3.1")
    wattileTask
    ```
 
