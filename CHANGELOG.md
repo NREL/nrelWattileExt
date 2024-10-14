@@ -14,7 +14,7 @@ This file tracks notable changes to **nrelWattileExt**. The format is based on
 
 [v0.3.0]: https://github.com/NREL/nrelWattileExt/releases/tag/v0.3.0
 
-[View Changes](https://github.com/NREL/nrelUtilityExt/compare/v0.2.1...v0.3.0)
+[View Changes](https://github.com/NREL/nrelWattileExt/compare/v0.2.1...v0.3.0)
 
 ### Added
 
@@ -37,7 +37,7 @@ This file tracks notable changes to **nrelWattileExt**. The format is based on
 
 [v0.2.1]: https://github.com/NREL/nrelWattileExt/releases/tag/v0.2.1
 
-[View Changes](https://github.com/NREL/nrelUtilityExt/compare/v0.2.0...v0.2.1)
+[View Changes](https://github.com/NREL/nrelWattileExt/compare/v0.2.0...v0.2.1)
 
 ### Added
 
