@@ -2,7 +2,7 @@
 ## Need hxpy updated to use Python 3.10+
 ## Until then, re-create hxpy build here
 #FROM ghcr.io/haxall/hxpy:3.1.10
-FROM python:3.12-slim
+FROM python:3.11-slim
 
 # Build Arguments
 ARG WATTILE_BRANCH
