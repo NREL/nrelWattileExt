@@ -89,11 +89,16 @@ To build the required Docker image containing [Wattile]:
    docker build --tag="wattile" .
    ```
    
-   Optionally, to specify a Wattile release version or branch other than
-   the default:
+   You can specify a different Wattile version to install from PyPi like this:
    
    ```
-   docker build --build-arg="WATTILE_RELEASE=X.Y.Z" --tag="wattile" .
+   docker build --build-arg="WATTILE_VERSION=X.Y.Z" --tag="wattile" .
+   ```
+   
+   Optionally, to specify a Wattile tag or branch from GitHub:
+   
+   ```
+   docker build --build-arg="WATTILE_TAG=vX.Y.Z" --tag="wattile" .
    ```
    
    or
