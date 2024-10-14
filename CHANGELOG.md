@@ -10,6 +10,12 @@ This file tracks notable changes to **nrelWattileExt**. The format is based on
 
 [View Changes](https://github.com/NREL/nrelWattileExt/compare/main...develop)
 
+## [v0.3.0] (2024-10-14)
+
+[v0.3.0]: https://github.com/NREL/nrelWattileExt/releases/tag/v0.3.0
+
+[View Changes](https://github.com/NREL/nrelUtilityExt/compare/v0.2.1...v0.3.0)
+
 ### Added
 
 - `wattileViewPredictionHistory()`: a function for visualizing Wattile

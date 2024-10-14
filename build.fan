@@ -1,7 +1,7 @@
 #! /usr/bin/env fan
 
-// Developed by the National Renewable Energy Laboratory
-// NREL internal use only (at this time)
+// Copyright (C) 2024, Alliance for Sustainable Energy, LLC
+// All Rights Reserved
 
 using build
 
@@ -15,7 +15,7 @@ class Build : BuildPod
   {
     podName = "nrelWattileExt"
     summary = "Interface extension for the Wattile Python package"
-    version = Version("0.2.1")
+    version = Version("0.3.0")
     meta    = [
                 "ext.name":        "nrelWattile",
                 "ext.icon":        "target",
