@@ -11,6 +11,11 @@ the [National Renewable Energy Laboratory].
 [Python]: https://www.python.org/ "Python Programming Language"
 [National Renewable Energy Laboratory]: https://www.nrel.gov "NREL Website"
 
+**Caution!** Wattile and **nrelWattileExt** are beta software. Syntax and
+interfaces are subject to change and you may experience unexpected behavior.
+Report bugs for Wattile [here](https://github.com/NREL/Wattile/issues) and for
+**nrelWattileExt** [here](https://github.com/NREL/nrelWattileExt/issues).
+
 Build
 -----
 
