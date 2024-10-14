@@ -11,6 +11,11 @@ Laboratory]`https://www.nrel.gov`.
 - [Change log]`https://github.com/NREL/nrelWattileExt/blob/main/CHANGELOG.md`
 - Report issues [here]`https://github.com/NREL/nrelWattileExt/issues`
 
+**Caution!** Wattile and **nrelWattileExt** are beta software. Syntax and
+interfaces are subject to change and you may experience unexpected behavior.
+Report bugs for Wattile [here]`https://github.com/NREL/Wattile/issues` and for
+**nrelWattileExt** [here]`https://github.com/NREL/nrelWattileExt/issues`.
+
 Introduction [#introduction]
 ****************************
 
