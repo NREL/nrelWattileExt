@@ -132,7 +132,7 @@ src:
                      readAll(wattilePoint and wattileModelRef and hisEnd), // Points
                      read(task and wattileTask), // Task
                      null, // Span
-                     {limit:7day, delay:15min, hotPeriod:3h, forecast} // Options
+                     {limit:30day, delay:15min, hotPeriod:3h, forecast} // Options
                    )""",
       dis:"Sync Wattile Predictions"
     }

@@ -6,7 +6,7 @@ This directory contains a simple demonstration of **nrelWattileExt** using the
 created using:
 
 - [SkySpark] 3.0.10
-- [Wattile] 0.3.0
+- [Wattile] 0.3.2
 - [nrelWattileExt] 0.3.0
 
 [SkySpark]: https://skyfoundry.com/product "SkySpark"
@@ -383,7 +383,7 @@ prediction history is best accomplished with a dedicated task.
        readAll(wattilePoint and wattileModelRef and hisEnd), // Points
        read(task and wattileTask), // Task
        null, // Span
-       {limit:7day, delay:15min, hotPeriod:3h, forecast} // Options
+       {limit:30day, delay:15min, hotPeriod:3h, forecast} // Options
      )
    ```
    
