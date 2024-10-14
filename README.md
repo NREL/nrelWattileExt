@@ -235,6 +235,7 @@ Resource Extension App Note].
   - docker
   - py
   - nrelUtility
+  - task
 
 4. Within the *Tools* app, *Files* tab, upload some or all of following files
    from `lib/` directory to `proj > wattile_test > io`, according to your
@@ -339,11 +340,6 @@ Alternative Workflow:
 4. Manually copy the Trio-formatted function record(s) from the *Shell* to the
    relevant file(s) in the `lib/` directory, replacing the existing versions
    as applicable.
-
-### Test Environment ###
-
-The `test/` subdirectory contains resources and instructions for setting up a
-minimal SkySpark test environment for developing and testing functions and workflows related to **nrelWattileExt**.
 
 License
 -------
